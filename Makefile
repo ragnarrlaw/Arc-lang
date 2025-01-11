@@ -3,6 +3,7 @@ OPTIONS=-Wall
 SRC_DIR=src
 BIN_DIR=bin
 EXEC=$(BIN_DIR)/main.o
+MAIN_FLAGS=-DINTERPRETER
 MAIN_ENTRY=src/main.c
 
 CFLAGS=-Wall -Wextra -g
@@ -25,11 +26,10 @@ test_clean:
 
 LINK=\
 	src/token/token.h src/token/token.c\
-	src/linker/linker.h src/linker/linker.c\
 	src/parser/parser.h src/parser/parser.c\
 
 build:
-	@$(CC) $(OPTIONS) $(MAIN_ENTRY) $(LINK) -o $(EXEC)
+	@$(CC) $(OPTIONS) $(MAIN_ENTRY) $(LINK) -o $(EXEC) $(MAIN_FLAGS)
 
 run: build
 	@./$(EXEC)
