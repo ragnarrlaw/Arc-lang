@@ -10,6 +10,9 @@ void test_multi_line_function_with_braces();
 void test_single_line_let();
 void test_multi_line_let();
 void test_punctuation();
+void test_single_line_comment();
+void test_underscore_separated_identifiers();
+void test_function_call();
 void test_program();
 
 #endif // !LEXER_TEST_H

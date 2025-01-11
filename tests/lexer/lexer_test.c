@@ -1,6 +1,7 @@
 #include "lexer_test.h"
 #include "../../src/lexer/lexer.h"
 #include "../../src/token/token.h"
+#include "../utils/util.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +9,7 @@
 #define ASSERT_TOKEN_TYPE(token, type) assert_token_type(token, type)
 
 void assert_token_type(struct token *t, enum TOKEN_TYPE type) {
-  assert(t->type == type);
+  ASSERT(t->type == type);
   free(t);
 }
 
@@ -29,6 +30,14 @@ static const char *multi_line_let = "let x :=\n"
 static const char *punctuation = "{}[](),;";
 
 static const char *single_line_comment = "# {}[](),\n";
+
+static const char *underscore_separated_identifiers =
+    "let x_y := 10;\n"
+    "fn function_one(float x, float y) -> float {\n"
+    "  return x + y;\n"
+    "}";
+
+static const char *function_call = "add(10, 20);";
 
 static const char *program = "fn add(x, y) -> x + y;\n"
                              "let x := 10;\n"
@@ -206,6 +215,81 @@ void test_single_line_comment() {
       lexer_init(single_line_comment, strlen(single_line_comment));
   struct token *t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SINGLE_LINE_COMMENT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_underscore_separated_identifiers() {
+  struct lexer *l = lexer_init(underscore_separated_identifiers,
+                               strlen(underscore_separated_identifiers));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LET);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, COMMA);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RETURN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, PLUS);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_function_call() {
+  struct lexer *l = lexer_init(function_call, strlen(function_call));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, COMMA);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, END_OF_FILE);
   lexer_free(l);
