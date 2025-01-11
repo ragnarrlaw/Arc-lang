@@ -5,4 +5,4 @@ struct parser {};
 
 struct parser *parser_init();
 
-#endif // PARSER_H
+#endif // !PARSER_H

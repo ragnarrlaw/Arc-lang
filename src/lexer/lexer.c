@@ -43,7 +43,7 @@ struct token *lexer_next_token(struct lexer *l) {
   }
 
   if (isalpha(l->current_char)) {
-    l->current_state = STATE_INDET_OR_KEY;
+    l->current_state = STATE_IDENT_OR_KEY;
     return lexer_indent_or_key(l);
   }
 
