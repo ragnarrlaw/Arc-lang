@@ -57,6 +57,6 @@ struct token {
 
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
                          size_t literal_len, uint line, uint col);
-void token_str(struct token *t);
+void token_repr(struct token *t);
 
 #endif // !TOKEN_H
