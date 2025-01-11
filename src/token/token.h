@@ -26,6 +26,7 @@ enum TOKEN_TYPE {
   LESSER,         // <
   LTEQ,           // <=
   GTEQ,           // >=
+  EQEQ,           // ==
 
   COMMA,     // ,
   SEMICOLON, // ;

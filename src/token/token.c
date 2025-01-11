@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 
 static const char *token_types[] = {
@@ -26,6 +27,7 @@ static const char *token_types[] = {
     "lesser",             // LESSER
     "less_than_equal",    // LTEQ
     "greater_than_equal", // GTEQ
+    "equally_equal",      // EQEQ
 
     "comma",     // COMMA
     "semicolon", // SEMICOLON
@@ -69,8 +71,10 @@ void token_free(struct token *t) {
 }
 
 void token_repr(struct token *t) {
-  PRINT_FIELD_INT(t, type);
+  printf("Token {:\n");
+  PRINT_CHAR_ARRAY(token_types[t->type], strlen(token_types[t->type]));
   PRINT_FIELD_CHAR_ARRAY(t, literal, t->literal_len);
   PRINT_FIELD_INT(t, line_number);
   PRINT_FIELD_INT(t, col_number);
+  printf("}\n");
 }
