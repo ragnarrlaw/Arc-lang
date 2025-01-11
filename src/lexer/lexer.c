@@ -195,6 +195,8 @@ struct token *lexer_operator(struct lexer *l) {
     return token_init(LTEQ, start, len, line, column);
   } else if (len == 2 && strncmp(start, ">=", 2) == 0) {
     return token_init(GTEQ, start, len, line, column);
+  } else if (len == 2 && strncmp(start, "==", 2) == 0) {
+    return token_init(EQEQ, start, len, line, column);
   } else {
     return lexer_error(l, start, len);
   }
