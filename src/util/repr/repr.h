@@ -12,4 +12,12 @@
     printf("\n"); \
   } while (0)
 
+#define PRINT_CHAR_ARRAY(arr, len) \
+  do { \
+    for (size_t i = 0; i < len; i++) { \
+      printf("%c", arr[i]); \
+    } \
+    printf("\n"); \
+  } while (0)
+
 #endif // !REPR_H
