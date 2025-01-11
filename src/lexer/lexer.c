@@ -37,6 +37,11 @@ struct lexer *lexer_init(const char *buffer, long length) {
 struct token *lexer_next_token(struct lexer *l) {
   lexer_whitespace(l);
 
+  if (l->current_char == '#') {
+    l->current_state = STATE_COMMENT;
+    return lexer_comment(l);
+  }
+
   if (isalpha(l->current_char)) {
     l->current_state = STATE_INDET_OR_KEY;
     return lexer_indent_or_key(l);
@@ -63,11 +68,6 @@ struct token *lexer_next_token(struct lexer *l) {
   if (ispunct(l->current_char)) {
     l->current_state = STATE_PUNCTUATION;
     return lexer_punctuation(l);
-  }
-
-  if (l->current_char == '#') {
-    l->current_state = STATE_COMMENT;
-    return lexer_comment(l);
   }
 
   if (l->current_char == 0) {
