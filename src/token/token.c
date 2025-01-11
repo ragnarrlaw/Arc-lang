@@ -1,4 +1,5 @@
 #include "token.h"
+#include "../util/repr/repr.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,26 +7,44 @@
 
 static const char *token_types[] = {
     "illegal", // ILLEGAL
-    "eof",     // EOF
+    "eof",     // END_OF_FILE
 
-    "identifier", // IDENTIFIER
-    "integer",    // INT
+    "identifier",     // IDENTIFIER
+    "numerical",      // NUMERICAL
+    "string_literal", // STRING_LITERAL
+    "int",            // INT
+    "float",          // FLOAT
 
-    "assignment_op", // ASSIGN
-    "equals",        // EQUALS
-    "plus",          // PLUS
+    "assignment_op",      // ASSIGN
+    "function_return",    // FUNCTION_R
+    "equals",             // EQUALS
+    "plus",               // PLUS
+    "division",           // DIVISION
+    "multiplication",     // MULTIPLICATION
+    "subtraction",        // SUBTRACTION
+    "greater",            // GREATER
+    "lesser",             // LESSER
+    "less_than_equal",    // LTEQ
+    "greater_than_equal", // GTEQ
 
     "comma",     // COMMA
     "semicolon", // SEMICOLON
 
-    "left parenthesis",  // LPAREN
-    "right parenthesis", // RPAREN
-    "left brace",        // LBRACE
-    "right brace",       // RBRACE
+    "left_parenthesis",     // LPAREN
+    "right_parenthesis",    // RPAREN
+    "left_square_bracket",  // LSQRBRAC
+    "right_square_bracket", // RSQRBRAC
+    "left_brace",           // LBRACE
+    "right_brace",          // RBRACE
 
     "function", // FUNCTION
     "let",      // LET
     "match",    // MATCH
+    "case",     // CASE
+    "return",   // RETURN
+
+    "single_line_comment", // SINGLE_LINE_COMMENT
+    "multiline_comment",   // MILTILINE_COMMENT
 };
 
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
@@ -49,12 +68,9 @@ void token_free(struct token *t) {
   t = NULL;
 }
 
-void token_str(struct token *t) {
-  printf("Type: %d\n", t->type);
-  for (size_t i = 0; i < t->literal_len; i++) {
-    printf("%c", t->literal[i]);
-  }
-  printf("\n");
-  printf("Line: %d\n", t->line_number);
-  printf("Column: %d\n", t->col_number);
+void token_repr(struct token *t) {
+  PRINT_FIELD_INT(t, type);
+  PRINT_FIELD_CHAR_ARRAY(t, literal, t->literal_len);
+  PRINT_FIELD_INT(t, line_number);
+  PRINT_FIELD_INT(t, col_number);
 }
