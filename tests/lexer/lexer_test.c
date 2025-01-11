@@ -9,6 +9,10 @@
 #define ASSERT_TOKEN_TYPE(token, type) assert_token_type(token, type)
 
 void assert_token_type(struct token *t, enum TOKEN_TYPE type) {
+  if (t->type != type) {
+    printf("expected: %d\n", type);
+    token_repr(t);
+  }
   ASSERT(t->type == type);
   free(t);
 }
@@ -38,6 +42,9 @@ static const char *underscore_separated_identifiers =
     "}";
 
 static const char *function_call = "add(10, 20);";
+
+static const char *floating_point_number = "10.0;\n"
+                                           "let f float := 20.0;";
 
 static const char *program = "fn add(x, y) -> x + y;\n"
                              "let x := 10;\n"
@@ -288,6 +295,30 @@ void test_function_call() {
   ASSERT_TOKEN_TYPE(t, NUMERICAL);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, RPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_floating_point_number() {
+  struct lexer *l =
+      lexer_init(floating_point_number, strlen(floating_point_number));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LET);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);

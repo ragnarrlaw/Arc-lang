@@ -15,6 +15,7 @@ int main() {
   RUN_TEST(test_single_line_comment);
   RUN_TEST(test_underscore_separated_identifiers);
   RUN_TEST(test_function_call);
+  RUN_TEST(test_floating_point_number);
   RUN_TEST(test_program);
 #endif
   PRINT_TEST_RESULTS();

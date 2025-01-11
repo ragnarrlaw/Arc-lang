@@ -13,6 +13,7 @@ void test_punctuation();
 void test_single_line_comment();
 void test_underscore_separated_identifiers();
 void test_function_call();
+void test_floating_point_number();
 void test_program();
 
 #endif // !LEXER_TEST_H
