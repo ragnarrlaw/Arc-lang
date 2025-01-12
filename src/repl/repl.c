@@ -73,7 +73,7 @@ bool ends_with_semicolon(const char *buffer, size_t size) {
         char c = buffer[i - 1];
         if (c == ';') {
             return true;
-        } else if (!isspace(c)) {
+        } else if (!isspace(c) && is_incomplete(buffer)) {
             return false;
         }
     }
