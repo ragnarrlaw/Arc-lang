@@ -26,6 +26,7 @@ test_clean:
 
 LINK=\
 	src/token/token.h src/token/token.c\
+	src/lexer/lexer.h src/lexer/lexer.c\
 	src/parser/parser.h src/parser/parser.c\
 	src/repl/repl.h src/repl/repl.c\
 
@@ -36,4 +37,4 @@ run: build
 	@./$(EXEC)
 
 clean:
-	@rm $(BIN_DIR)/*.o
+	@rm $(BIN_DIR)/main.o
