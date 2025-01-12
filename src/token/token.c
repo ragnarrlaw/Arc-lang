@@ -16,38 +16,38 @@ static const char *token_types[] = {
     "int",            // INT
     "float",          // FLOAT
 
-    "assign",         // ASSIGN
-    "function_r",     // FUNCTION_R
-    "equal",          // EQUAL
-    "plus",           // PLUS
-    "slash",          // SLASH
-    "asterisk",       // ASTERISK
-    "minus",          // MINUS
-    "gt",             // GT
-    "lt",             // LT
-    "lt_eq",          // LT_EQ
-    "gt_eq",          // GT_EQ
-    "eq_eq",          // EQ_EQ
-    "bang",           // BANG
-    "not_eq",         // NOT_EQ
+    "assign",     // ASSIGN
+    "function_r", // FUNCTION_R
+    "equal",      // EQUAL
+    "plus",       // PLUS
+    "slash",      // SLASH
+    "asterisk",   // ASTERISK
+    "minus",      // MINUS
+    "gt",         // GT
+    "lt",         // LT
+    "lt_eq",      // LT_EQ
+    "gt_eq",      // GT_EQ
+    "eq_eq",      // EQ_EQ
+    "bang",       // BANG
+    "not_eq",     // NOT_EQ
 
-    "comma",          // COMMA
-    "semicolon",      // SEMICOLON
+    "comma",     // COMMA
+    "semicolon", // SEMICOLON
 
-    "lparen",         // LPAREN
-    "rparen",         // RPAREN
-    "lsqrbrac",       // LSQRBRAC
-    "rsqrbrac",       // RSQRBRAC
-    "lbrace",         // LBRACE
-    "rbrace",         // RBRACE
+    "lparen",   // LPAREN
+    "rparen",   // RPAREN
+    "lsqrbrac", // LSQRBRAC
+    "rsqrbrac", // RSQRBRAC
+    "lbrace",   // LBRACE
+    "rbrace",   // RBRACE
 
-    "function",       // FUNCTION
-    "let",            // LET
-    "match",          // MATCH
-    "case",           // CASE
-    "return",         // RETURN
-    "if",             // IF
-    "else",           // ELSE
+    "function", // FUNCTION
+    "let",      // LET
+    "match",    // MATCH
+    "case",     // CASE
+    "return",   // RETURN
+    "if",       // IF
+    "else",     // ELSE
 
     "single_line_comment", // SINGLE_LINE_COMMENT
     "multiline_comment",   // MULTILINE_COMMENT

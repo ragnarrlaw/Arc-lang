@@ -24,11 +24,11 @@ enum TOKEN_TYPE {
   MINUS,      // -
   GT,         // >
   LT,         // <
-  LT_EQ,       // <=
-  GT_EQ,       // >=
-  EQ_EQ,       // ==
+  LT_EQ,      // <=
+  GT_EQ,      // >=
+  EQ_EQ,      // ==
   BANG,       // !
-  NOT_EQ,       // !=
+  NOT_EQ,     // !=
 
   COMMA,     // ,
   SEMICOLON, // ;
@@ -45,9 +45,8 @@ enum TOKEN_TYPE {
   MATCH,    // match
   CASE,     // case - match arm
   RETURN,   // return
-  IF, // if
-  ELSE, // else
-
+  IF,       // if
+  ELSE,     // else
 
   SINGLE_LINE_COMMENT, // #
   MULTILINE_COMMENT,   // ## -> currently only supports single line comments
@@ -64,5 +63,6 @@ struct token {
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
                          size_t literal_len, uint line, uint col);
 void token_repr(struct token *t);
+void token_free(struct token *t);
 
 #endif // !TOKEN_H
