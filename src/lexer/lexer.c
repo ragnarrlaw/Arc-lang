@@ -60,7 +60,8 @@ struct token *lexer_next_token(struct lexer *l) {
   if (l->current_char == ':' || l->current_char == '+' ||
       l->current_char == '-' || l->current_char == '/' ||
       l->current_char == '=' || l->current_char == '>' ||
-      l->current_char == '<' || l->current_char == '*') {
+      l->current_char == '!' || l->current_char == '<' ||
+      l->current_char == '*') {
     l->current_state = STATE_OPERATOR;
     return lexer_operator(l);
   }
@@ -119,6 +120,10 @@ struct token *lexer_indent_or_key(struct lexer *l) {
     return token_init(FLOAT, start, len, line, column);
   } else if (len == 3 && strncmp(start, "int", len) == 0) {
     return token_init(INT, start, len, line, column);
+  } else if (len == 2 && strncmp(start, "if", len) == 0) {
+    return token_init(IF, start, len, line, column);
+  } else if (len == 4 && strncmp(start, "else", len) == 0) {
+    return token_init(ELSE, start, len, line, column);
   } else {
     return token_init(IDENTIFIER, start, len, line, column);
   }
@@ -179,24 +184,28 @@ struct token *lexer_operator(struct lexer *l) {
     return token_init(FUNCTION_R, start, len, line, column);
   } else if (len == 1 && strncmp(start, "+", 1) == 0) {
     return token_init(PLUS, start, len, line, column);
+  } else if (len == 1 && strncmp(start, "!", 1) == 0) {
+    return token_init(BANG, start, len, line, column);
   } else if (len == 1 && strncmp(start, "-", 1) == 0) {
-    return token_init(SUBTRACTION, start, len, line, column);
+    return token_init(MINUS, start, len, line, column);
   } else if (len == 1 && strncmp(start, "*", 1) == 0) {
-    return token_init(MULTIPLICATION, start, len, line, column);
+    return token_init(ASTERISK, start, len, line, column);
   } else if (len == 1 && strncmp(start, "/", 1) == 0) {
-    return token_init(DIVISION, start, len, line, column);
+    return token_init(SLASH, start, len, line, column);
   } else if (len == 1 && strncmp(start, "=", 1) == 0) {
-    return token_init(EQUALS, start, len, line, column);
+    return token_init(EQUAL, start, len, line, column);
   } else if (len == 1 && strncmp(start, ">", 1) == 0) {
-    return token_init(GREATER, start, len, line, column);
+    return token_init(GT, start, len, line, column);
   } else if (len == 1 && strncmp(start, "<", 1) == 0) {
-    return token_init(LESSER, start, len, line, column);
+    return token_init(LT, start, len, line, column);
   } else if (len == 2 && strncmp(start, "<=", 2) == 0) {
-    return token_init(LTEQ, start, len, line, column);
+    return token_init(LT_EQ, start, len, line, column);
   } else if (len == 2 && strncmp(start, ">=", 2) == 0) {
-    return token_init(GTEQ, start, len, line, column);
+    return token_init(GT_EQ, start, len, line, column);
   } else if (len == 2 && strncmp(start, "==", 2) == 0) {
-    return token_init(EQEQ, start, len, line, column);
+    return token_init(EQ_EQ, start, len, line, column);
+  } else if (len == 2 && strncmp(start, "!=", 2) == 0) {
+    return token_init(NOT_EQ, start, len, line, column);
   } else {
     return lexer_error(l, start, len);
   }
