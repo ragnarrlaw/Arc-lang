@@ -16,6 +16,9 @@ int main() {
   RUN_TEST(test_underscore_separated_identifiers);
   RUN_TEST(test_function_call);
   RUN_TEST(test_floating_point_number);
+  RUN_TEST(test_if_else_statement);
+  RUN_TEST(test_complex_expression);
+  RUN_TEST(test_operators);
   RUN_TEST(test_program);
 #endif
   PRINT_TEST_RESULTS();

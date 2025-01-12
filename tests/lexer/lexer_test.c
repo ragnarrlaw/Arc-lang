@@ -8,6 +8,23 @@
 
 #define ASSERT_TOKEN_TYPE(token, type) assert_token_type(token, type)
 
+void run_all_tests() {
+  test_single_line_function();
+  test_multi_line_function();
+  test_multi_line_function_with_braces();
+  test_single_line_let();
+  test_multi_line_let();
+  test_punctuation();
+  test_single_line_comment();
+  test_underscore_separated_identifiers();
+  test_function_call();
+  test_floating_point_number();
+  test_if_else_statement();
+  test_complex_expression();
+  test_program();
+  test_operators();
+}
+
 void assert_token_type(struct token *t, enum TOKEN_TYPE type) {
   if (t->type != type) {
     printf("expected: %d\n", type);
@@ -50,6 +67,16 @@ static const char *program = "fn add(x, y) -> x + y;\n"
                              "let x := 10;\n"
                              "let y := 20;\n"
                              "let z := x + y;";
+
+static const char *if_else_statement = "if x > 10 {\n"
+                                       "  return x;\n"
+                                       "} else {\n"
+                                       "  return 0;\n"
+                                       "}";
+
+static const char *complex_expression = "let result := (a + b) * (c - d) / e;";
+
+static const char *operators = ":= -> = + / * - > < <= >= == ! !=";
 
 void test_single_line_function() {
   struct lexer *l =
@@ -112,7 +139,6 @@ void test_multi_line_function() {
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, END_OF_FILE);
-  t = lexer_next_token(l);
   lexer_free(l);
 }
 
@@ -386,6 +412,119 @@ void test_program() {
   ASSERT_TOKEN_TYPE(t, IDENTIFIER);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_if_else_statement() {
+  struct lexer *l = lexer_init(if_else_statement, strlen(if_else_statement));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IF);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, GT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RETURN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ELSE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RETURN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RBRACE);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_complex_expression() {
+  struct lexer *l = lexer_init(complex_expression, strlen(complex_expression));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LET);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, PLUS);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASTERISK);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, MINUS);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, RPAREN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SLASH);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  lexer_free(l);
+}
+
+void test_operators() {
+  struct lexer *l = lexer_init(operators, strlen(operators));
+  struct token *t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, EQUAL);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, PLUS);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, SLASH);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, ASTERISK);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, MINUS);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, GT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LT);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, LT_EQ);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, GT_EQ);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, EQ_EQ);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, BANG);
+  t = lexer_next_token(l);
+  ASSERT_TOKEN_TYPE(t, NOT_EQ);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, END_OF_FILE);
   lexer_free(l);
