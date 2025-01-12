@@ -6,27 +6,29 @@
 
 enum TOKEN_TYPE {
 
-  ILLEGAL, // for invalid tokens
+  ILLEGAL,     // for invalid tokens
   END_OF_FILE, // end of file
 
-  IDENTIFIER, // add, foobar
-  NUMERICAL, // 12345 or 123.45
+  IDENTIFIER,     // add, foobar
+  NUMERICAL,      // 12345 or 123.45
   STRING_LITERAL, // "foobar"
-  INT,        // int
-  FLOAT,      // float
+  INT,            // int
+  FLOAT,          // float
 
-  ASSIGN,         // :=
-  FUNCTION_R,     // ->
-  EQUALS,         // =
-  PLUS,           // +
-  DIVISION,       // /
-  MULTIPLICATION, // *
-  SUBTRACTION,    // -
-  GREATER,        // >
-  LESSER,         // <
-  LTEQ,           // <=
-  GTEQ,           // >=
-  EQEQ,           // ==
+  ASSIGN,     // :=
+  FUNCTION_R, // ->
+  EQUAL,      // =
+  PLUS,       // +
+  SLASH,      // /
+  ASTERISK,   // *
+  MINUS,      // -
+  GT,         // >
+  LT,         // <
+  LT_EQ,       // <=
+  GT_EQ,       // >=
+  EQ_EQ,       // ==
+  BANG,       // !
+  NOT_EQ,       // !=
 
   COMMA,     // ,
   SEMICOLON, // ;
@@ -42,10 +44,13 @@ enum TOKEN_TYPE {
   LET,      // let
   MATCH,    // match
   CASE,     // case - match arm
-  RETURN,  // return
+  RETURN,   // return
+  IF, // if
+  ELSE, // else
+
 
   SINGLE_LINE_COMMENT, // #
-  MILTILINE_COMMENT,   // ## -> currently only supports single line comments
+  MULTILINE_COMMENT,   // ## -> currently only supports single line comments
 };
 
 struct token {

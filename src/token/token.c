@@ -16,37 +16,41 @@ static const char *token_types[] = {
     "int",            // INT
     "float",          // FLOAT
 
-    "assignment_op",      // ASSIGN
-    "function_return",    // FUNCTION_R
-    "equals",             // EQUALS
-    "plus",               // PLUS
-    "division",           // DIVISION
-    "multiplication",     // MULTIPLICATION
-    "subtraction",        // SUBTRACTION
-    "greater",            // GREATER
-    "lesser",             // LESSER
-    "less_than_equal",    // LTEQ
-    "greater_than_equal", // GTEQ
-    "equally_equal",      // EQEQ
+    "assign",         // ASSIGN
+    "function_r",     // FUNCTION_R
+    "equal",          // EQUAL
+    "plus",           // PLUS
+    "slash",          // SLASH
+    "asterisk",       // ASTERISK
+    "minus",          // MINUS
+    "gt",             // GT
+    "lt",             // LT
+    "lt_eq",          // LT_EQ
+    "gt_eq",          // GT_EQ
+    "eq_eq",          // EQ_EQ
+    "bang",           // BANG
+    "not_eq",         // NOT_EQ
 
-    "comma",     // COMMA
-    "semicolon", // SEMICOLON
+    "comma",          // COMMA
+    "semicolon",      // SEMICOLON
 
-    "left_parenthesis",     // LPAREN
-    "right_parenthesis",    // RPAREN
-    "left_square_bracket",  // LSQRBRAC
-    "right_square_bracket", // RSQRBRAC
-    "left_brace",           // LBRACE
-    "right_brace",          // RBRACE
+    "lparen",         // LPAREN
+    "rparen",         // RPAREN
+    "lsqrbrac",       // LSQRBRAC
+    "rsqrbrac",       // RSQRBRAC
+    "lbrace",         // LBRACE
+    "rbrace",         // RBRACE
 
-    "function", // FUNCTION
-    "let",      // LET
-    "match",    // MATCH
-    "case",     // CASE
-    "return",   // RETURN
+    "function",       // FUNCTION
+    "let",            // LET
+    "match",          // MATCH
+    "case",           // CASE
+    "return",         // RETURN
+    "if",             // IF
+    "else",           // ELSE
 
     "single_line_comment", // SINGLE_LINE_COMMENT
-    "multiline_comment",   // MILTILINE_COMMENT
+    "multiline_comment",   // MULTILINE_COMMENT
 };
 
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
