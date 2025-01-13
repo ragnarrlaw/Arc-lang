@@ -1,0 +1,7 @@
+CompileFlags:
+  Add: [
+    -I/path-to-includes/include,
+    -I/path-to-src/src,
+    -I/path-to-tests/tests
+  ]
+

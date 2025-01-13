@@ -1,4 +1,4 @@
-#include "repl/repl.h"
+#include "repl.h"
 #include <stdlib.h>
 
 // prettier-ignore

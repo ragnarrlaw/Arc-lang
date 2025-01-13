@@ -1,5 +1,5 @@
-#ifndef FILE_H
-#define FILE_H
+#ifndef UTIL_FILE_H
+#define UTIL_FILE_H
 
 typedef struct file_info {
   const char *filename;
@@ -9,4 +9,4 @@ typedef struct file_info {
 
 file_info *load_file(const char *filename);
 
-#endif // !FILE_H
+#endif // !UTIL_FILE_H

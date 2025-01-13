@@ -1,9 +1,9 @@
 #ifndef LEXER_TEST_H
 #define LEXER_TEST_H
 
-#include "../../src/lexer/lexer.h"
+#include "lexer.h"
 
-void run_all_tests();
+void lexer_run_all_tests();
 void assert_token_type(struct token *, enum TOKEN_TYPE);
 void test_single_line_function();
 void test_multi_line_function();

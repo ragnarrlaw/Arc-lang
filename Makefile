@@ -1,40 +1,34 @@
-CC=gcc
-OPTIONS=-Wall
-SRC_DIR=src
-BIN_DIR=bin
-EXEC=$(BIN_DIR)/main.o
-MAIN_FLAGS=-DINTERPRETER
-MAIN_ENTRY=src/main.c
+CC := gcc
+CFLAGS := -Wall -Wextra -Iinclude -g
 
-CFLAGS=-Wall -Wextra -g
-TEST_DIR=tests
-TEST_FLAGS=-DMODULE_LEXER_TEST
-TEST_ENTRY=$(TEST_DIR)/module_test.c
+SRC_DIR := src
+BUILD_DIR := build
+BIN_DIR := bin
+TEST_DIR := tests
 
-TEST_LINK=\
-	src/token/token.h src/token/token.c\
-	src/parser/parser.h src/parser/parser.c\
-	src/lexer/lexer.h src/lexer/lexer.c\
-	tests/lexer/lexer_test.c tests/lexer/lexer_test.h\
+SRCS := $(wildcard $(SRC_DIR)/*.c)
+OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter-out $(SRC_DIR)/main.c, $(SRCS)))
+TARGET := $(BIN_DIR)/interpreter
 
-test:
-	@$(CC) $(TEST_ENTRY) $(CFLAGS) $(TEST_FLAGS) $(TEST_LINK) -o $(BIN_DIR)/test.o
-	@./$(BIN_DIR)/test.o
+all: $(TARGET)
 
-test_clean:
-	@rm $(BIN_DIR)/test.o
+$(TARGET): $(OBJS) $(BUILD_DIR)/main.o | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
 
-LINK=\
-	src/token/token.h src/token/token.c\
-	src/lexer/lexer.h src/lexer/lexer.c\
-	src/parser/parser.h src/parser/parser.c\
-	src/repl/repl.h src/repl/repl.c\
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-build:
-	@$(CC) $(OPTIONS) $(MAIN_ENTRY) $(LINK) -o $(EXEC) $(MAIN_FLAGS)
+$(BIN_DIR) $(BUILD_DIR):
+	mkdir -p $@
 
-run: build
-	@./$(EXEC)
+run: $(TARGET)
+	$(TARGET)
+
+test: $(OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $(BIN_DIR)/test_runner $(TEST_DIR)/test_runner.c $(OBJS) $(TEST_DIR)/lexer_test.h $(TEST_DIR)/lexer_test.c $(TEST_DIR)/test_util.h $(TEST_DIR)/test_util.c
+	$(BIN_DIR)/test_runner
 
 clean:
-	@rm $(BIN_DIR)/main.o
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
+
+.PHONY: all test clean

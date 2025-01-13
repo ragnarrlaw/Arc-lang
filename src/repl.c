@@ -1,6 +1,6 @@
 #include "repl.h"
-#include "../lexer/lexer.h"
-#include "../token/token.h"
+#include "lexer.h"
+#include "token.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>

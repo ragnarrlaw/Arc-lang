@@ -1,5 +1,5 @@
 #include "token.h"
-#include "../util/repr/repr.h"
+#include "util_repr.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,6 +1,6 @@
 #include "lexer.h"
-#include "../token/token.h"
-#include "../util/error/error.h"
+#include "token.h"
+#include "util_error.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

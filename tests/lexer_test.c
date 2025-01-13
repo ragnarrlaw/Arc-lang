@@ -1,28 +1,28 @@
 #include "lexer_test.h"
-#include "../../src/lexer/lexer.h"
-#include "../../src/token/token.h"
-#include "../utils/util.h"
+#include "lexer.h"
+#include "test_util.h"
+#include "token.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define ASSERT_TOKEN_TYPE(token, type) assert_token_type(token, type)
 
-void run_all_tests() {
-  test_single_line_function();
-  test_multi_line_function();
-  test_multi_line_function_with_braces();
-  test_single_line_let();
-  test_multi_line_let();
-  test_punctuation();
-  test_single_line_comment();
-  test_underscore_separated_identifiers();
-  test_function_call();
-  test_floating_point_number();
-  test_if_else_statement();
-  test_complex_expression();
-  test_program();
-  test_operators();
+void lexer_run_all_tests() {
+  RUN_TEST(test_single_line_function);
+  RUN_TEST(test_multi_line_function);
+  RUN_TEST(test_multi_line_function_with_braces);
+  RUN_TEST(test_single_line_let);
+  RUN_TEST(test_multi_line_let);
+  RUN_TEST(test_punctuation);
+  RUN_TEST(test_single_line_comment);
+  RUN_TEST(test_underscore_separated_identifiers);
+  RUN_TEST(test_function_call);
+  RUN_TEST(test_floating_point_number);
+  RUN_TEST(test_if_else_statement);
+  RUN_TEST(test_complex_expression);
+  RUN_TEST(test_operators);
+  RUN_TEST(test_program);
 }
 
 void assert_token_type(struct token *t, enum TOKEN_TYPE type) {

@@ -1,5 +1,5 @@
-#ifndef ERROR_H
-#define ERROR_H
+#ifndef UTIL_ERROR_H
+#define UTIL_ERROR_H
 
 #include <stdio.h>
 
@@ -7,4 +7,4 @@
   fprintf(stderr, ">>> %s file: %s at: %d in: %s\n", msg, __FILE__, __LINE__,  \
           __func__);
 
-#endif // !ERROR_H
+#endif // !UTIL_ERROR_H
