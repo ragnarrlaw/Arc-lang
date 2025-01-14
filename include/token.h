@@ -14,6 +14,9 @@ enum TOKEN_TYPE {
   STRING_LITERAL, // "foobar"
   INT,            // int
   FLOAT,          // float
+  BOOL,           // bool
+  TRUE,           // true
+  FALSE,          // false
 
   ASSIGN,     // :=
   FUNCTION_R, // ->
@@ -47,6 +50,8 @@ enum TOKEN_TYPE {
   RETURN,   // return
   IF,       // if
   ELSE,     // else
+  FOR,      // for
+  WHILE,    // while
 
   SINGLE_LINE_COMMENT, // #
   MULTILINE_COMMENT,   // ## -> currently only supports single line comments

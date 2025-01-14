@@ -15,6 +15,9 @@ static const char *token_types[] = {
     "string_literal", // STRING_LITERAL
     "int",            // INT
     "float",          // FLOAT
+    "bool",           // BOOL
+    "true",           // TRUE
+    "false",          // FALSE
 
     "assign",     // ASSIGN
     "function_r", // FUNCTION_R
@@ -48,6 +51,8 @@ static const char *token_types[] = {
     "return",   // RETURN
     "if",       // IF
     "else",     // ELSE
+    "for",      // FOR
+    "while",    // WHILE
 
     "single_line_comment", // SINGLE_LINE_COMMENT
     "multiline_comment",   // MULTILINE_COMMENT

@@ -124,6 +124,14 @@ struct token *lexer_indent_or_key(struct lexer *l) {
     return token_init(IF, start, len, line, column);
   } else if (len == 4 && strncmp(start, "else", len) == 0) {
     return token_init(ELSE, start, len, line, column);
+  } else if (len == 3 && strncmp(start, "for", len) == 0) {
+    return token_init(FOR, start, len, line, column);
+  } else if (len == 5 && strncmp(start, "while", len) == 0) {
+    return token_init(WHILE, start, len, line, column);
+  } else if (len == 4 && strncmp(start, "true", len) == 0) {
+    return token_init(TRUE, start, len, line, column);
+  } else if (len == 5 && strncmp(start, "false", len) == 0) {
+    return token_init(FALSE, start, len, line, column);
   } else {
     return token_init(IDENTIFIER, start, len, line, column);
   }
