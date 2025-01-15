@@ -99,6 +99,7 @@ struct statement {
 
     // return statements (e.g. return 5)
     struct {
+      struct token *token;
       struct expression *value;
     } return_stmt;
 
