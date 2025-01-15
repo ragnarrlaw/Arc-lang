@@ -11,12 +11,15 @@
 
 struct statement *parser_parse_statement(struct parser *);
 
-// advance the parser through tokens
+// advance the parser to the next token
 void parser_next_token(struct parser *);
+// assert current token's type
 bool parser_current_token_is(struct parser *p, enum TOKEN_TYPE);
+// assert next token's type
 bool parser_next_token_is(struct parser *p, enum TOKEN_TYPE);
-
-// if the next token is the expected token advance the parser
+/**
+ * if the next token is the expected token advance the parser, used to enforce
+ * constructs */
 bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE);
 
 // statements
@@ -163,8 +166,21 @@ struct statement *parser_parse_let_statement(struct parser *p) {
   return NULL;
 }
 
+// return <expression>;
 struct statement *parser_parse_return_statement(struct parser *p) {
-  return NULL;
+  struct statement *stmt = ast_statement_init(STMT_RETURN);
+  if (stmt == NULL) {
+    return NULL;
+  }
+  stmt->return_stmt.token = p->current_token;
+  parser_next_token(p);
+  struct expression *expr = parser_parse_expression(p);
+  if (expr == NULL) {
+    free(stmt);
+    return NULL;
+  }
+  stmt->return_stmt.value = expr;
+  return stmt;
 }
 
 struct statement *parser_parse_expression_statement(struct parser *p) {
@@ -182,3 +198,5 @@ struct statement *parser_parse_while_statement(struct parser *p) {
 struct statement *parser_parse_fn_def_statement(struct parser *p) {
   return NULL;
 }
+
+struct expression *parser_parse_expression(struct parser *p) { return NULL; }
