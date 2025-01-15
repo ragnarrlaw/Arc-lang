@@ -1,4 +1,5 @@
 #include "token.h"
+#include "util_error.h"
 #include "util_repr.h"
 #include <stddef.h>
 #include <stdio.h>
@@ -62,6 +63,7 @@ struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
                          size_t literal_len, uint line, uint col) {
   struct token *token = (struct token *)malloc(sizeof(struct token));
   if (token == NULL) {
+    ERROR_LOG("error while allocating memory");
     return NULL;
   }
   token->type = type;
@@ -86,4 +88,8 @@ void token_repr(struct token *t) {
   PRINT_FIELD_INT(t, line_number);
   PRINT_FIELD_INT(t, col_number);
   printf("}\n");
+}
+
+const char *token_type_to_str(enum TOKEN_TYPE type) {
+  return token_types[type];
 }
