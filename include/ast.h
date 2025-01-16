@@ -92,7 +92,7 @@ struct statement {
   union {
     // let statements (e.g. let x := 5)
     struct {
-      struct token *name;
+      struct token *token;
       struct token *identifier;
       struct expression *value;
     } let_stmt;
@@ -106,7 +106,7 @@ struct statement {
     // function definition statements (e.g. fn add(int a, int b) int { return a
     // + b; })
     struct {
-      struct token *name;
+      struct token *token;
       struct token **param_types;
       struct token **param_names;
       size_t param_count;
@@ -117,12 +117,13 @@ struct statement {
 
     // expression statements (e.g. 5 + 5;)
     struct {
+      struct token *token;
       struct expression *expr;
     } expr_stmt;
 
     // if statements (e.g. if (condition) { ... })
     struct {
-      struct token *name;             // if
+      struct token *token;            // if
       struct expression *condition;   // if condition
       struct statement **consequence; // if block
       size_t consequence_count;       // number of statements in the if block
@@ -132,7 +133,7 @@ struct statement {
 
     // for statements (e.g. for (init; condition; update) { ... })
     struct {
-      struct token *name;           // for
+      struct token *token;          // for
       struct statement *init;       // init statement
       struct expression *condition; // condition
       struct statement *update;     // update statement
@@ -142,7 +143,7 @@ struct statement {
 
     // while statements (e.g. while (condition) { ... })
     struct {
-      struct token *name;           // while
+      struct token *token;           // while
       struct expression *condition; // condition
       struct statement **body;      // while block
       size_t body_count;            // number of statements in the while block
