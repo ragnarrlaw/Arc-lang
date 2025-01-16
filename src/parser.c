@@ -37,13 +37,13 @@ bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE);
 struct statement *parser_parse_let_statement(struct parser *);
 struct statement *parser_parse_return_statement(struct parser *);
 struct statement *parser_parse_expression_statement(struct parser *);
-struct statement *parser_parse_if_statement(struct parser *);
-struct statement *parser_parse_for_statement(struct parser *);
-struct statement *parser_parse_while_statement(struct parser *);
-struct statement *parser_parse_fn_def_statement(struct parser *);
-
 // expressions
-struct expression *parser_parse_expression(struct parser *p);
+struct expression *parser_parse_expression(struct parser *,
+                                           enum OPS_PRECEDENCE);
+struct expression *parser_parse_if_expression(struct parser *);
+struct expression *parser_parse_for_expression(struct parser *);
+struct expression *parser_parse_while_expression(struct parser *);
+struct expression *parser_parse_fn_def_expression(struct parser *);
 
 struct parser *parser_init(struct lexer *l) {
   struct parser *p = (struct parser *)malloc(sizeof(struct parser));
@@ -145,9 +145,8 @@ struct statement *parser_parse_statement(struct parser *p) {
   case RETURN:
     return parser_parse_return_statement(p);
   default:
-    return NULL;
+    return parser_parse_expression_statement(p);
   }
-  return NULL;
 }
 
 // let <identifier> := <expression>;
@@ -165,7 +164,7 @@ struct statement *parser_parse_let_statement(struct parser *p) {
       free(stmt);
       return NULL;
     }
-    struct expression *expr = parser_parse_expression(p);
+    struct expression *expr = parser_parse_expression(p, LOWEST);
     if (expr == NULL) {
       free(stmt);
       return NULL;
@@ -185,7 +184,7 @@ struct statement *parser_parse_return_statement(struct parser *p) {
   }
   stmt->return_stmt.token = p->current_token;
   parser_next_token(p);
-  struct expression *expr = parser_parse_expression(p);
+  struct expression *expr = parser_parse_expression(p, LOWEST);
   if (expr == NULL) {
     free(stmt);
     return NULL;
@@ -195,19 +194,26 @@ struct statement *parser_parse_return_statement(struct parser *p) {
 }
 
 struct statement *parser_parse_expression_statement(struct parser *p) {
+  struct statement *stmt = ast_statement_init(STMT_EXPRESSION);
+  if (stmt == NULL) {
+    return NULL;
+  }
+  stmt->expr_stmt.token = p->current_token;
+  struct expression *expr = parser_parse_expression(p, LOWEST);
+
+  if (expr == NULL) {
+    free(stmt);
+    return NULL;
+  }
+
+  if (parser_next_token_is(p, SEMICOLON)) {
+    parser_next_token(p);
+  }
+
   return NULL;
 }
 
-struct statement *parser_parse_if_statement(struct parser *p) { return NULL; }
-
-struct statement *parser_parse_for_statement(struct parser *p) { return NULL; }
-
-struct statement *parser_parse_while_statement(struct parser *p) {
+struct expression *parser_parse_expression(struct parser *p,
+                                           enum OPS_PRECEDENCE precedence) {
   return NULL;
 }
-
-struct statement *parser_parse_fn_def_statement(struct parser *p) {
-  return NULL;
-}
-
-struct expression *parser_parse_expression(struct parser *p) { return NULL; }
