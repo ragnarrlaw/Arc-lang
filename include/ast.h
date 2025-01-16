@@ -3,6 +3,16 @@
 
 #include "token.h"
 
+enum OPS_PRECEDENCE {
+  LOWEST,
+  EQUALS,      // ==
+  LESSGREATER, // > or <
+  SUM,         // +
+  PRODUCT,     // *
+  PREFIX,      // -X or !X
+  CALL,        // myFunction(X)
+};
+
 enum EXPRESSION_TYPE {
   EXPR_LITERAL,  // 5;
   EXPR_VARIABLE, // identifier cases -> a;
@@ -143,7 +153,7 @@ struct statement {
 
     // while statements (e.g. while (condition) { ... })
     struct {
-      struct token *token;           // while
+      struct token *token;          // while
       struct expression *condition; // condition
       struct statement **body;      // while block
       size_t body_count;            // number of statements in the while block
