@@ -9,6 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// prefix operator
+typedef struct expression *(*parser_parse_prefix_fn)(struct parser *p);
+
+// infix operator
+typedef struct expression *(*parser_parse_infix_fn)(struct parser *p,
+                                                    struct expression *left);
+
+// postfix operator
+typedef struct expression *(*parser_parse_postfix_fn)(struct parser *p,
+                                                      struct expression *left);
+
 struct statement *parser_parse_statement(struct parser *);
 
 // advance the parser to the next token
@@ -143,7 +154,7 @@ struct statement *parser_parse_statement(struct parser *p) {
 struct statement *parser_parse_let_statement(struct parser *p) {
   struct statement *stmt = ast_statement_init(STMT_LET);
   if (stmt != NULL) {
-    stmt->let_stmt.name = p->current_token;
+    stmt->let_stmt.token = p->current_token;
     if (!parser_expect_next_token(p, IDENTIFIER)) {
       free(stmt);
       return NULL;
