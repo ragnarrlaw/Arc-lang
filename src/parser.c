@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // prefix operator
 typedef struct expression *(*parser_parse_prefix_fn)(struct parser *p);
@@ -37,13 +38,44 @@ bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE);
 struct statement *parser_parse_let_statement(struct parser *);
 struct statement *parser_parse_return_statement(struct parser *);
 struct statement *parser_parse_expression_statement(struct parser *);
+
 // expressions
 struct expression *parser_parse_expression(struct parser *,
                                            enum OPS_PRECEDENCE);
+struct expression *parser_parse_identifier(struct parser *);
+struct expression *parser_parse_integer_literal(struct parser *);
+struct expression *parser_parse_float_literal(struct parser *);
+struct expression *parser_parse_string_literal(struct parser *);
 struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
 struct expression *parser_parse_fn_def_expression(struct parser *);
+
+// prefix_fn, infix_fn, and postfix_fn
+parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type);
+parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type);
+parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type);
+
+parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
+  switch (type) {
+  case IDENTIFIER:
+    return parser_parse_identifier;
+  case INT:
+    return parser_parse_integer_literal;
+  case FLOAT:
+    return parser_parse_float_literal;
+  case STRING_LITERAL:
+    return parser_parse_string_literal;
+  default:
+    return NULL;
+  }
+}
+
+parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type) { return NULL; }
+
+parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type) {
+  return NULL;
+}
 
 struct parser *parser_init(struct lexer *l) {
   struct parser *p = (struct parser *)malloc(sizeof(struct parser));
@@ -193,6 +225,7 @@ struct statement *parser_parse_return_statement(struct parser *p) {
   return stmt;
 }
 
+// <expression>
 struct statement *parser_parse_expression_statement(struct parser *p) {
   struct statement *stmt = ast_statement_init(STMT_EXPRESSION);
   if (stmt == NULL) {
@@ -215,5 +248,75 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
 
 struct expression *parser_parse_expression(struct parser *p,
                                            enum OPS_PRECEDENCE precedence) {
-  return NULL;
+  parser_parse_prefix_fn prefix_fn =
+      parser_get_prefix_fn(p->current_token->type);
+  if (prefix_fn == NULL) {
+    return NULL;
+  }
+
+  struct expression *left = prefix_fn(p);
+  return left;
+}
+
+struct expression *parser_parse_identifier(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_IDENTIFIER);
+  if (!expr) {
+    return NULL;
+  }
+  expr->identifier_expr.token = p->current_token;
+  return expr;
+}
+
+struct expression *parser_parse_integer_literal(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_LITERAL);
+  if (!expr) {
+    return NULL;
+  }
+  expr->literal.token = p->current_token;
+  expr->literal.literal_type = LITERAL_INT;
+  char buffer[p->current_token->literal_len + 1];
+  memcpy(buffer, p->current_token->literal, p->current_token->literal_len);
+  buffer[p->current_token->literal_len] = '\0';
+
+  long value = strtol(buffer, NULL, 10);
+  expr->literal.value.int_value = value;
+
+  return expr;
+}
+
+struct expression *parser_parse_float_literal(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_LITERAL);
+  if (!expr) {
+    return NULL;
+  }
+  expr->literal.token = p->current_token;
+  expr->literal.literal_type = LITERAL_FLOAT;
+  char buffer[p->current_token->literal_len + 1];
+  memcpy(buffer, p->current_token->literal, p->current_token->literal_len);
+  buffer[p->current_token->literal_len] = '\0';
+
+  float value = strtof(buffer, NULL);
+  expr->literal.value.float_value = value;
+
+  return expr;
+}
+
+struct expression *parser_parse_string_literal(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_LITERAL);
+  if (!expr) {
+    return NULL;
+  }
+
+  expr->literal.token = p->current_token;
+  expr->literal.literal_type = LITERAL_STRING;
+  expr->literal.value.string_literal = malloc(sizeof(struct string_literal));
+  if (!expr->literal.value.string_literal) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+
+  expr->literal.value.string_literal->value =
+      strndup(p->current_token->literal, p->current_token->literal_len);
+
+  return expr;
 }
