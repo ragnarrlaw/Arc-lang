@@ -34,6 +34,47 @@ void ast_expression_free(struct expression *e) {
   e = NULL;
 }
 
+struct literal *ast_literal_init(enum LITERAL_TYPE type) {
+  struct literal *l = (struct literal *)malloc(sizeof(struct literal));
+  if (l == NULL) {
+    ERROR_LOG("error while allocating memory");
+    return NULL;
+  }
+  l->literal_type = type;
+  return l;
+}
+
+void free_literal(struct literal *literal) {
+  if (!literal)
+    return;
+
+  switch (literal->literal_type) {
+  case LITERAL_STRING:
+    free(literal->value.string_literal->value);
+    free(literal->value.string_literal);
+    break;
+  case LITERAL_ARRAY:
+    for (size_t i = 0; i < literal->value.array_literal->count; i++) {
+      free_literal(&literal->value.array_literal->elements[i]);
+    }
+    free(literal->value.array_literal->elements);
+    free(literal->value.array_literal);
+    break;
+  case LITERAL_STRUCT:
+    for (size_t i = 0; i < literal->value.struct_literal->field_count; i++) {
+      free_literal(literal->value.struct_literal->fields[i]);
+      free(literal->value.struct_literal->fieldnames[i]);
+    }
+    free(literal->value.struct_literal->fields);
+    free(literal->value.struct_literal->fieldnames);
+    free(literal->value.struct_literal);
+    break;
+  default:
+    break;
+  }
+  free(literal);
+}
+
 struct program *ast_program_init() {
   struct program *p = (struct program *)malloc(sizeof(struct program));
   if (p == NULL) {
