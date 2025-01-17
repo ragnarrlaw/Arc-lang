@@ -51,7 +51,7 @@ struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
 struct expression *parser_parse_fn_def_expression(struct parser *);
 
-// prefix_fn, infix_fn, and postfix_fn
+// prefix_fn, infix_fn, and postfix_fn -> for literals
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type);
 parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type);
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type);
