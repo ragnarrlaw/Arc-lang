@@ -34,6 +34,11 @@ static const char *token_types[] = {
     "eq_eq",      // EQ_EQ
     "bang",       // BANG
     "not_eq",     // NOT_EQ
+    "and",        // AND
+    "or",         // OR
+    "mod",        // mod
+    "inc",        // inc
+    "dec",        // dec
 
     "comma",     // COMMA
     "semicolon", // SEMICOLON

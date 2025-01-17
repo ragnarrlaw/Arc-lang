@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+
 enum TOKEN_TYPE {
 
   ILLEGAL,     // for invalid tokens
@@ -32,6 +33,11 @@ enum TOKEN_TYPE {
   EQ_EQ,      // ==
   BANG,       // !
   NOT_EQ,     // !=
+  AND,        // &&
+  OR,         // ||
+  MOD,        // %
+  INC,        // ++
+  DEC,        // --
 
   COMMA,     // ,
   SEMICOLON, // ;
