@@ -188,6 +188,6 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE);
 void ast_expression_free(struct expression *);
 
 struct literal *ast_literal_init(enum LITERAL_TYPE);
-void ast_literal_free(enum LITERAL_TYPE);
+void ast_literal_free(struct literal *literal);
 
 #endif // !AST_H
