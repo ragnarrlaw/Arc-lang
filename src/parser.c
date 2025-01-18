@@ -43,6 +43,10 @@ struct statement *parser_parse_expression_statement(struct parser *);
 struct expression *parser_parse_expression(struct parser *,
                                            enum OPS_PRECEDENCE);
 struct expression *parser_parse_identifier(struct parser *);
+struct expression *parser_parse_unary_operator(struct parser *);
+/** this is the only function for parsing binary operators infix operators */
+struct expression *parser_parse_binary_operator(struct parser *,
+                                                struct expression *);
 struct expression *parser_parse_integer_literal(struct parser *);
 struct expression *parser_parse_float_literal(struct parser *);
 struct expression *parser_parse_string_literal(struct parser *);
@@ -56,6 +60,39 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type);
 parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type);
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type);
 
+// precedence of operators -> for parsing expressions
+enum OPS_PRECEDENCE parser_get_operator_precedence(enum TOKEN_TYPE type);
+enum OPS_PRECEDENCE parser_get_next_token_precedence(struct parser *p);
+enum OPS_PRECEDENCE parser_get_current_token_precedence(struct parser *p);
+
+// defines the precedence table for the operators
+enum OPS_PRECEDENCE parser_get_operator_precedence(enum TOKEN_TYPE type) {
+  switch (type) {
+  case EQ_EQ:
+  case NOT_EQ:
+    return EQUALS;
+  case LT:
+  case GT:
+    return LESSGREATER;
+  case PLUS:
+  case MINUS:
+    return SUM;
+  case ASTERISK:
+  case SLASH:
+    return PRODUCT;
+  default:
+    return LOWEST;
+  }
+}
+
+enum OPS_PRECEDENCE parser_get_next_token_precedence(struct parser *p) {
+  return parser_get_operator_precedence(p->next_token->type);
+}
+
+enum OPS_PRECEDENCE parser_get_current_token_precedence(struct parser *p) {
+  return parser_get_operator_precedence(p->current_token->type);
+}
+
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
   switch (type) {
   case IDENTIFIER:
@@ -66,12 +103,19 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
     return parser_parse_float_literal;
   case STRING_LITERAL:
     return parser_parse_string_literal;
+  /** unary (or prefix) operator function */
+  case BANG:
+  case MINUS:
+    return parser_parse_unary_operator;
   default:
     return NULL;
   }
 }
 
-parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type) { return NULL; }
+parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type) {
+  return parser_parse_binary_operator; // for all the binary operators, one
+                                       // parsing function
+}
 
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type) {
   return NULL;
@@ -187,13 +231,13 @@ struct statement *parser_parse_let_statement(struct parser *p) {
   if (stmt != NULL) {
     stmt->let_stmt.token = p->current_token;
     if (!parser_expect_next_token(p, IDENTIFIER)) {
-      free(stmt);
+      ast_statement_free(stmt);
       return NULL;
     }
     stmt->let_stmt.identifier = p->current_token;
 
     if (!parser_expect_next_token(p, ASSIGN)) {
-      free(stmt);
+      ast_statement_free(stmt);
       return NULL;
     }
     struct expression *expr = parser_parse_expression(p, LOWEST);
@@ -218,7 +262,7 @@ struct statement *parser_parse_return_statement(struct parser *p) {
   parser_next_token(p);
   struct expression *expr = parser_parse_expression(p, LOWEST);
   if (expr == NULL) {
-    free(stmt);
+    ast_statement_free(stmt);
     return NULL;
   }
   stmt->return_stmt.value = expr;
@@ -235,7 +279,7 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
   struct expression *expr = parser_parse_expression(p, LOWEST);
 
   if (expr == NULL) {
-    free(stmt);
+    ast_statement_free(stmt);
     return NULL;
   }
 
@@ -243,7 +287,7 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
     parser_next_token(p);
   }
 
-  return NULL;
+  return stmt;
 }
 
 struct expression *parser_parse_expression(struct parser *p,
@@ -251,10 +295,22 @@ struct expression *parser_parse_expression(struct parser *p,
   parser_parse_prefix_fn prefix_fn =
       parser_get_prefix_fn(p->current_token->type);
   if (prefix_fn == NULL) {
+    parser_add_error(p, "no prefix parse function for %s",
+                     token_type_to_str(p->current_token->type));
     return NULL;
   }
 
   struct expression *left = prefix_fn(p);
+
+  while (!parser_next_token_is(p, SEMICOLON) &&
+         precedence < parser_get_next_token_precedence(p)) {
+    parser_parse_infix_fn infix_fn = parser_get_infix_fn(p->next_token->type);
+    if (infix_fn == NULL) {
+      return left;
+    }
+    parser_next_token(p);
+    left = infix_fn(p, left);
+  }
   return left;
 }
 
@@ -264,6 +320,37 @@ struct expression *parser_parse_identifier(struct parser *p) {
     return NULL;
   }
   expr->identifier_expr.token = p->current_token;
+  return expr;
+}
+
+// unary_operator<expression> -> -<expression> or !<expression>
+struct expression *parser_parse_unary_operator(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_UNARY);
+  if (!expr) {
+    return NULL;
+  }
+  expr->unary_expr.op = p->current_token;
+  parser_next_token(p); // advance to the right-hand side of the operator
+  expr->unary_expr.right = parser_parse_expression(
+      p, PREFIX); // parse the right-hand side expression
+  if (!expr->unary_expr.right) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  return expr;
+}
+
+struct expression *parser_parse_binary_operator(struct parser *p,
+                                                struct expression *left) {
+  struct expression *expr = ast_expression_init(EXPR_BINARY);
+  if (!expr) {
+    return NULL;
+  }
+  expr->binary_expr.left = left;
+  expr->binary_expr.op = p->current_token;
+  enum OPS_PRECEDENCE precedence = parser_get_current_token_precedence(p);
+  parser_next_token(p);
+  expr->binary_expr.right = parser_parse_expression(p, precedence);
   return expr;
 }
 
