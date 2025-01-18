@@ -73,12 +73,13 @@ enum OPS_PRECEDENCE {
 enum EXPRESSION_TYPE {
   EXPR_LITERAL,    // 5; or 5
   EXPR_IDENTIFIER, // identifier cases -> a; or a
-  EXPR_BINARY,     // binary operators -> a + b;
-  EXPR_UNARY,      // binary operators -> -10;
-  EXPR_FN_CALL,    // add(a, b);
-  EXPR_IF,         // if statement -> if (condition) { ... }
-  EXPR_FOR,        // for loop -> for (init; condition; update) { ... }
-  EXPR_WHILE,      // while loop -> while (condition) { ... }
+  EXPR_UNARY,   /** binary operators -> -10 or !true -> operators !, ++, -- and
+                 * - are prefix operators */
+  EXPR_BINARY,  // binary operators -> a + b;
+  EXPR_FN_CALL, // add(a, b);
+  EXPR_IF,      // if statement -> if (condition) { ... }
+  EXPR_FOR,     // for loop -> for (init; condition; update) { ... }
+  EXPR_WHILE,   // while loop -> while (condition) { ... }
 };
 
 struct expression {
@@ -94,12 +95,14 @@ struct expression {
 
     // binary expressions (e.g. a + b)
     struct {
+      struct token *bin_token;
       struct expression *left;
       struct token *op;
       struct expression *right;
     } binary_expr;
 
-    // unary operator expressions (e.g. -a)
+    /** unary operator expressions (e.g. -a and !true) and the prefix operators
+     * -> this is the prefix expression */
     struct {
       struct token *op;
       struct expression *right;
