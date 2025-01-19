@@ -195,7 +195,7 @@ void test_single_line_let() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -212,7 +212,7 @@ void test_multi_line_let() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -263,7 +263,7 @@ void test_underscore_separated_identifiers() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -314,11 +314,11 @@ void test_function_call() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, LPAREN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, COMMA);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, RPAREN);
   t = lexer_next_token(l);
@@ -332,7 +332,7 @@ void test_floating_point_number() {
   struct lexer *l =
       lexer_init(floating_point_number, strlen(floating_point_number));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -344,7 +344,7 @@ void test_floating_point_number() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, FLOAT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -385,7 +385,7 @@ void test_program() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -395,7 +395,7 @@ void test_program() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, ASSIGN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
@@ -426,7 +426,7 @@ void test_if_else_statement() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, GT);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, LBRACE);
   t = lexer_next_token(l);
@@ -444,7 +444,7 @@ void test_if_else_statement() {
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, RETURN);
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NUMERICAL);
+  ASSERT_TOKEN_TYPE(t, INT);
   t = lexer_next_token(l);
   ASSERT_TOKEN_TYPE(t, SEMICOLON);
   t = lexer_next_token(l);
