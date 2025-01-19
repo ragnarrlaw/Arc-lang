@@ -25,7 +25,7 @@ run: $(TARGET)
 	$(TARGET)
 
 test: $(OBJS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $(BIN_DIR)/test_runner $(TEST_DIR)/test_runner.c $(OBJS) $(TEST_DIR)/lexer_test.h $(TEST_DIR)/lexer_test.c $(TEST_DIR)/test_util.h $(TEST_DIR)/test_util.c
+	$(CC) $(CFLAGS) -o $(BIN_DIR)/test_runner $(TEST_DIR)/test_runner.c $(OBJS) $(TEST_DIR)/lexer_test.h $(TEST_DIR)/lexer_test.c $(TEST_DIR)/test_util.h $(TEST_DIR)/test_util.c $(TEST_DIR)/parser_test.h $(TEST_DIR)/parser_test.c
 	$(BIN_DIR)/test_runner
 
 clean:
