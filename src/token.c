@@ -12,7 +12,6 @@ static const char *token_types[] = {
     "eof",     // END_OF_FILE
 
     "identifier",     // IDENTIFIER
-    "numerical",      // NUMERICAL
     "string_literal", // STRING_LITERAL
     "int",            // INT
     "float",          // FLOAT
@@ -36,9 +35,9 @@ static const char *token_types[] = {
     "not_eq",     // NOT_EQ
     "and",        // AND
     "or",         // OR
-    "mod",        // mod
-    "inc",        // inc
-    "dec",        // dec
+    "mod",        // MOD
+    "inc",        // INC
+    "dec",        // DEC
 
     "comma",     // COMMA
     "semicolon", // SEMICOLON

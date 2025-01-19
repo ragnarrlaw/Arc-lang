@@ -4,14 +4,12 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-
 enum TOKEN_TYPE {
 
   ILLEGAL,     // for invalid tokens
   END_OF_FILE, // end of file
 
   IDENTIFIER,     // add, foobar
-  NUMERICAL,      // 12345 or 123.45
   STRING_LITERAL, // "foobar"
   INT,            // int
   FLOAT,          // float
