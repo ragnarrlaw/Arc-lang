@@ -5,4 +5,9 @@
 
 void parser_run_all_tests();
 
+void let_statement_test();
+void return_statement_test();
+void expression_statement_test();
+void expressions_test();
+
 #endif // !PARSER_TEST_H
