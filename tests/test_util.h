@@ -1,6 +1,8 @@
 #ifndef TEST_UTIL_H
 #define TEST_UTIL_H
 
+#include "ast.h"
+#include "token.h"
 #include <stdio.h>
 
 static int tests_run = 0;
@@ -30,5 +32,9 @@ static int tests_passed = 0;
     printf("Tests passed: %d\n", tests_passed);                                \
     printf("Tests failed: %d\n", tests_run - tests_passed);                    \
   } while (0)
+
+char *t_stmt_repr(struct statement *);
+char *t_expr_repr(struct expression *);
+void test_repr();
 
 #endif // !TEST_UTIL_H
