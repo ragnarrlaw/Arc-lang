@@ -5,8 +5,50 @@
 #include "lexer.h"
 #include "token.h"
 #include <stdbool.h>
+#include <sys/types.h>
 
 #define PARSER_ERR_MSG_LEN 1024
+
+struct parser;
+struct parser_error;
+struct operator_precedence;
+
+enum OPERATOR_PRECEDENCE {
+  LOWEST,         // Lowest precedence (e.g., commas)
+  ASSIGNMENT,     // :=, +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=
+  CONDITIONAL,    // ?: (ternary conditional)
+  LOGICAL_OR,     // ||
+  LOGICAL_AND,    // &&
+  BITWISE_OR,     // |
+  BITWISE_XOR,    // ^
+  BITWISE_AND,    // &
+  EQUALITY,       // ==, !=
+  RELATIONAL,     // <, <=, >, >=
+  SHIFT,          // <<, >>
+  ADDITIVE,       // +, -
+  MULTIPLICATIVE, // *, /, %
+  PREFIX,  // -, !, ~, ++, --, sizeof, & (address-of), * (dereference), cast
+  POSTFIX, // ++, --, () (function call), [] (array access), . (member access),
+           // -> (pointer member access)
+  HIGHEST  // Highest precedence (e.g., primary expressions like literals and
+           // parentheses)
+};
+
+// prefix operator
+typedef struct expression *(*parser_parse_prefix_fn)(struct parser *p);
+
+// infix operator
+typedef struct expression *(*parser_parse_infix_fn)(struct parser *p,
+                                                    struct expression *left);
+
+// postfix operator
+typedef struct expression *(*parser_parse_postfix_fn)(struct parser *p,
+                                                      struct expression *left);
+
+struct token_precedence {
+  enum OPERATOR_PRECEDENCE lbp; // left binding power
+  enum OPERATOR_PRECEDENCE rbp; // right binding power
+};
 
 struct parser {
   struct lexer *lexer;

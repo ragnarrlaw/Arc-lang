@@ -10,17 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// prefix operator
-typedef struct expression *(*parser_parse_prefix_fn)(struct parser *p);
-
-// infix operator
-typedef struct expression *(*parser_parse_infix_fn)(struct parser *p,
-                                                    struct expression *left);
-
-// postfix operator
-typedef struct expression *(*parser_parse_postfix_fn)(struct parser *p,
-                                                      struct expression *left);
-
 struct statement *parser_parse_statement(struct parser *);
 
 // advance the parser to the next token
@@ -41,7 +30,7 @@ struct statement *parser_parse_expression_statement(struct parser *);
 
 // expressions
 struct expression *parser_parse_expression(struct parser *,
-                                           enum OPS_PRECEDENCE);
+                                           enum OPERATOR_PRECEDENCE);
 struct expression *parser_parse_identifier(struct parser *);
 struct expression *parser_parse_unary_operator(struct parser *);
 /** this is the only function for parsing binary operators infix operators */
@@ -50,6 +39,7 @@ struct expression *parser_parse_binary_operator(struct parser *,
 struct expression *parser_parse_integer_literal(struct parser *);
 struct expression *parser_parse_float_literal(struct parser *);
 struct expression *parser_parse_string_literal(struct parser *);
+struct expression *parser_parse_boolean_literal(struct parser *p);
 struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
@@ -61,36 +51,52 @@ parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type);
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type);
 
 // precedence of operators -> for parsing expressions
-enum OPS_PRECEDENCE parser_get_operator_precedence(enum TOKEN_TYPE type);
-enum OPS_PRECEDENCE parser_get_next_token_precedence(struct parser *p);
-enum OPS_PRECEDENCE parser_get_current_token_precedence(struct parser *p);
+struct token_precedence parser_get_token_precedence(enum TOKEN_TYPE type);
+enum OPERATOR_PRECEDENCE parser_get_next_token_precedence(struct parser *p);
+enum OPERATOR_PRECEDENCE parser_get_current_token_precedence(struct parser *p);
 
-// defines the precedence table for the operators
-enum OPS_PRECEDENCE parser_get_operator_precedence(enum TOKEN_TYPE type) {
+/**
+defines the precedence table for the operators
+right associative token have a higher right binding
+value and a lower left binding value than their right
+ */
+struct token_precedence parser_get_token_precedence(enum TOKEN_TYPE type) {
   switch (type) {
   case EQ_EQ:
   case NOT_EQ:
-    return EQUALS;
+    return (struct token_precedence){EQUALITY, EQUALITY};
   case LT:
   case GT:
-    return LESSGREATER;
+    return (struct token_precedence){RELATIONAL, RELATIONAL};
   case PLUS:
   case MINUS:
-    return SUM;
+    return (struct token_precedence){ADDITIVE, ADDITIVE};
   case ASTERISK:
   case SLASH:
-    return PRODUCT;
+    return (struct token_precedence){MULTIPLICATIVE, MULTIPLICATIVE};
+  case AND:
+    return (struct token_precedence){LOGICAL_AND, LOGICAL_AND};
+  case OR:
+    return (struct token_precedence){LOGICAL_OR, LOGICAL_OR};
+  case ASSIGN:
+    return (struct token_precedence){ASSIGNMENT,
+                                     ASSIGNMENT + 1}; // right-associative
+  case INC:
+  case DEC:
+    return (struct token_precedence){POSTFIX, POSTFIX};
+  case COMMA:
+    return (struct token_precedence){LOWEST, LOWEST};
   default:
-    return LOWEST;
+    return (struct token_precedence){LOWEST, LOWEST};
   }
 }
 
-enum OPS_PRECEDENCE parser_get_next_token_precedence(struct parser *p) {
-  return parser_get_operator_precedence(p->next_token->type);
+enum OPERATOR_PRECEDENCE parser_get_next_token_precedence(struct parser *p) {
+  return parser_get_token_precedence(p->next_token->type).lbp;
 }
 
-enum OPS_PRECEDENCE parser_get_current_token_precedence(struct parser *p) {
-  return parser_get_operator_precedence(p->current_token->type);
+enum OPERATOR_PRECEDENCE parser_get_current_token_precedence(struct parser *p) {
+  return parser_get_token_precedence(p->current_token->type).rbp;
 }
 
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
@@ -103,7 +109,9 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
     return parser_parse_float_literal;
   case STRING_LITERAL:
     return parser_parse_string_literal;
-  /** unary (or prefix) operator function */
+  case TRUE:
+  case FALSE:
+    return parser_parse_boolean_literal;
   case BANG:
   case MINUS:
     return parser_parse_unary_operator;
@@ -145,6 +153,7 @@ void parser_free(struct parser *p) {
         free(tmp);
       }
     }
+    lexer_free(p->lexer);
     free(p);
   }
 }
@@ -156,8 +165,6 @@ struct program *parser_parse_program(struct parser *p) {
     struct statement *stmt = parser_parse_statement(p);
     if (stmt != NULL) {
       ast_program_push_statement(program, stmt);
-    } else {
-      TODO
     }
     parser_next_token(p);
   }
@@ -240,9 +247,12 @@ struct statement *parser_parse_let_statement(struct parser *p) {
       ast_statement_free(stmt);
       return NULL;
     }
+
+    parser_next_token(p);
+
     struct expression *expr = parser_parse_expression(p, LOWEST);
     if (expr == NULL) {
-      free(stmt);
+      ast_statement_free(stmt);
       return NULL;
     }
     stmt->let_stmt.value = expr;
@@ -290,10 +300,11 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
   return stmt;
 }
 
-struct expression *parser_parse_expression(struct parser *p,
-                                           enum OPS_PRECEDENCE precedence) {
+struct expression *
+parser_parse_expression(struct parser *p, enum OPERATOR_PRECEDENCE precedence) {
   parser_parse_prefix_fn prefix_fn =
       parser_get_prefix_fn(p->current_token->type);
+
   if (prefix_fn == NULL) {
     parser_add_error(p, "no prefix parse function for %s",
                      token_type_to_str(p->current_token->type));
@@ -340,6 +351,7 @@ struct expression *parser_parse_unary_operator(struct parser *p) {
   return expr;
 }
 
+// <expression>binary_operator<expression>
 struct expression *parser_parse_binary_operator(struct parser *p,
                                                 struct expression *left) {
   struct expression *expr = ast_expression_init(EXPR_BINARY);
@@ -348,9 +360,10 @@ struct expression *parser_parse_binary_operator(struct parser *p,
   }
   expr->binary_expr.left = left;
   expr->binary_expr.op = p->current_token;
-  enum OPS_PRECEDENCE precedence = parser_get_current_token_precedence(p);
+  struct token_precedence prec =
+      parser_get_token_precedence(p->current_token->type);
   parser_next_token(p);
-  expr->binary_expr.right = parser_parse_expression(p, precedence);
+  expr->binary_expr.right = parser_parse_expression(p, prec.rbp);
   return expr;
 }
 
@@ -404,6 +417,18 @@ struct expression *parser_parse_string_literal(struct parser *p) {
 
   expr->literal.value.string_literal->value =
       strndup(p->current_token->literal, p->current_token->literal_len);
+  expr->literal.value.string_literal->length = p->current_token->literal_len;
 
+  return expr;
+}
+
+struct expression *parser_parse_boolean_literal(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_LITERAL);
+  if (!expr) {
+    return NULL;
+  }
+  expr->literal.token = p->current_token;
+  expr->literal.literal_type = LITERAL_BOOL;
+  expr->literal.value.bool_value = p->current_token->type == TRUE;
   return expr;
 }
