@@ -150,16 +150,19 @@ struct token *lexer_numerical(struct lexer *l) {
     lexer_advance(l);
   }
 
-  return token_init(NUMERICAL, start, len, l->line, l->column);
+  // Determine the token type based on the presence of a dot
+  enum TOKEN_TYPE type = has_dot ? FLOAT : INT;
+
+  return token_init(type, start, len, l->line, l->column);
 }
 
 struct token *lexer_string_literal(struct lexer *l) {
   int len = 0;
   int column = l->column;
   int line = l->line;
-  const char *start = l->position;
 
   lexer_advance(l); // Skip opening quote
+  const char *start = l->position;
   while (l->current_char != '"' && l->current_char != 0) {
     if (l->current_char == '\\') {
       lexer_advance(l); // Skip escape character
