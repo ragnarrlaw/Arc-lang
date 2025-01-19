@@ -2,12 +2,14 @@
 #define AST_H
 
 #include "token.h"
+#include <stdbool.h>
 
 enum LITERAL_TYPE {
   LITERAL_INT,
   LITERAL_FLOAT,
   LITERAL_STRING,
   LITERAL_CHAR,
+  LITERAL_BOOL,
   LITERAL_ARRAY,
   LITERAL_STRUCT,
 };
@@ -49,6 +51,7 @@ union literal_value {
   long int_value;
   float float_value;
   char char_value;
+  bool bool_value;
   struct string_literal *string_literal;
   struct array_literal *array_literal;
   struct struct_literal *struct_literal;
@@ -58,16 +61,6 @@ struct literal {
   enum LITERAL_TYPE literal_type;
   struct token *token;
   union literal_value value;
-};
-
-enum OPS_PRECEDENCE {
-  LOWEST,
-  EQUALS,      // ==
-  LESSGREATER, // > or <
-  SUM,         // +
-  PRODUCT,     // *
-  PREFIX,      // -X or !X
-  CALL,        // myFunction(X)
 };
 
 enum EXPRESSION_TYPE {
@@ -158,6 +151,7 @@ struct statement {
     struct {
       struct token *token;
       struct token *identifier;
+      struct token *assign;
       struct expression *value;
     } let_stmt;
 

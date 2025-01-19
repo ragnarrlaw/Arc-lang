@@ -1,5 +1,6 @@
 #include "ast.h"
 #include "util_error.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
