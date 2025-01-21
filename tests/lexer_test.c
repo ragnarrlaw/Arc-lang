@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ASSERT_TOKEN_TYPE(token, type) assert_token_type(token, type)
-
 void lexer_run_all_tests() {
   RUN_TEST(test_single_line_function);
   RUN_TEST(test_multi_line_function);
@@ -23,15 +21,6 @@ void lexer_run_all_tests() {
   RUN_TEST(test_complex_expression);
   RUN_TEST(test_operators);
   RUN_TEST(test_program);
-}
-
-void assert_token_type(struct token *t, enum TOKEN_TYPE type) {
-  if (t->type != type) {
-    printf("expected: %d\n", type);
-    token_repr(t);
-  }
-  ASSERT(t->type == type);
-  free(t);
 }
 
 static const char *single_line_function = "fn add(x, y) -> x + y;";
@@ -82,31 +71,83 @@ void test_single_line_function() {
   struct lexer *l =
       lexer_init(single_line_function, strlen(single_line_function));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  if (t->type != FUNCTION) {
+    printf("expected: %d, got: %d\n", FUNCTION, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
@@ -114,31 +155,83 @@ void test_multi_line_function() {
   struct lexer *l =
       lexer_init(multi_line_function, strlen(multi_line_function));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  if (t->type != FUNCTION) {
+    printf("expected: %d, got: %d\n", FUNCTION, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
@@ -146,100 +239,260 @@ void test_multi_line_function_with_braces() {
   struct lexer *l = lexer_init(multi_line_function_with_braces,
                                strlen(multi_line_function_with_braces));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  if (t->type != FUNCTION) {
+    printf("expected: %d, got: %d\n", FUNCTION, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LBRACE);
+  if (t->type != LBRACE) {
+    printf("expected: %d, got: %d\n", LBRACE, t->type);
+    token_repr(t);
+    assert(t->type == LBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RETURN);
+  if (t->type != RETURN) {
+    printf("expected: %d, got: %d\n", RETURN, t->type);
+    token_repr(t);
+    assert(t->type == RETURN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RBRACE);
+  if (t->type != RBRACE) {
+    printf("expected: %d, got: %d\n", RBRACE, t->type);
+    token_repr(t);
+    assert(t->type == RBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_single_line_let() {
   struct lexer *l = lexer_init(single_line_let, strlen(single_line_let));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_multi_line_let() {
   struct lexer *l = lexer_init(multi_line_let, strlen(multi_line_let));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_punctuation() {
   struct lexer *l = lexer_init(punctuation, strlen(punctuation));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LBRACE);
+  if (t->type != LBRACE) {
+    printf("expected: %d, got: %d\n", LBRACE, t->type);
+    token_repr(t);
+    assert(t->type == LBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RBRACE);
+  if (t->type != RBRACE) {
+    printf("expected: %d, got: %d\n", RBRACE, t->type);
+    token_repr(t);
+    assert(t->type == RBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LSQRBRAC);
+  if (t->type != LSQRBRAC) {
+    printf("expected: %d, got: %d\n", LSQRBRAC, t->type);
+    token_repr(t);
+    assert(t->type == LSQRBRAC);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RSQRBRAC);
+  if (t->type != RSQRBRAC) {
+    printf("expected: %d, got: %d\n", RSQRBRAC, t->type);
+    token_repr(t);
+    assert(t->type == RSQRBRAC);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
@@ -247,9 +500,17 @@ void test_single_line_comment() {
   struct lexer *l =
       lexer_init(single_line_comment, strlen(single_line_comment));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SINGLE_LINE_COMMENT);
+  if (t->type != SINGLE_LINE_COMMENT) {
+    printf("expected: %d, got: %d\n", SINGLE_LINE_COMMENT, t->type);
+    token_repr(t);
+    assert(t->type == SINGLE_LINE_COMMENT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
@@ -257,74 +518,202 @@ void test_underscore_separated_identifiers() {
   struct lexer *l = lexer_init(underscore_separated_identifiers,
                                strlen(underscore_separated_identifiers));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  if (t->type != FUNCTION) {
+    printf("expected: %d, got: %d\n", FUNCTION, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LBRACE);
+  if (t->type != LBRACE) {
+    printf("expected: %d, got: %d\n", LBRACE, t->type);
+    token_repr(t);
+    assert(t->type == LBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RETURN);
+  if (t->type != RETURN) {
+    printf("expected: %d, got: %d\n", RETURN, t->type);
+    token_repr(t);
+    assert(t->type == RETURN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RBRACE);
+  if (t->type != RBRACE) {
+    printf("expected: %d, got: %d\n", RBRACE, t->type);
+    token_repr(t);
+    assert(t->type == RBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_function_call() {
   struct lexer *l = lexer_init(function_call, strlen(function_call));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
@@ -332,200 +721,552 @@ void test_floating_point_number() {
   struct lexer *l =
       lexer_init(floating_point_number, strlen(floating_point_number));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FLOAT);
+  if (t->type != FLOAT) {
+    printf("expected: %d, got: %d\n", FLOAT, t->type);
+    token_repr(t);
+    assert(t->type == FLOAT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_program() {
   struct lexer *l = lexer_init(program, strlen(program));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION);
+  if (t->type != FUNCTION) {
+    printf("expected: %d, got: %d\n", FUNCTION, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, COMMA);
+  if (t->type != COMMA) {
+    printf("expected: %d, got: %d\n", COMMA, t->type);
+    token_repr(t);
+    assert(t->type == COMMA);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_if_else_statement() {
   struct lexer *l = lexer_init(if_else_statement, strlen(if_else_statement));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IF);
+  if (t->type != IF) {
+    printf("expected: %d, got: %d\n", IF, t->type);
+    token_repr(t);
+    assert(t->type == IF);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, GT);
+  if (t->type != GT) {
+    printf("expected: %d, got: %d\n", GT, t->type);
+    token_repr(t);
+    assert(t->type == GT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LBRACE);
+  if (t->type != LBRACE) {
+    printf("expected: %d, got: %d\n", LBRACE, t->type);
+    token_repr(t);
+    assert(t->type == LBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RETURN);
+  if (t->type != RETURN) {
+    printf("expected: %d, got: %d\n", RETURN, t->type);
+    token_repr(t);
+    assert(t->type == RETURN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RBRACE);
+  if (t->type != RBRACE) {
+    printf("expected: %d, got: %d\n", RBRACE, t->type);
+    token_repr(t);
+    assert(t->type == RBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ELSE);
+  if (t->type != ELSE) {
+    printf("expected: %d, got: %d\n", ELSE, t->type);
+    token_repr(t);
+    assert(t->type == ELSE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LBRACE);
+  if (t->type != LBRACE) {
+    printf("expected: %d, got: %d\n", LBRACE, t->type);
+    token_repr(t);
+    assert(t->type == LBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RETURN);
+  if (t->type != RETURN) {
+    printf("expected: %d, got: %d\n", RETURN, t->type);
+    token_repr(t);
+    assert(t->type == RETURN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, INT);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RBRACE);
+  if (t->type != RBRACE) {
+    printf("expected: %d, got: %d\n", RBRACE, t->type);
+    token_repr(t);
+    assert(t->type == RBRACE);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_complex_expression() {
   struct lexer *l = lexer_init(complex_expression, strlen(complex_expression));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LET);
+  if (t->type != LET) {
+    printf("expected: %d, got: %d\n", LET, t->type);
+    token_repr(t);
+    assert(t->type == LET);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASTERISK);
+  if (t->type != ASTERISK) {
+    printf("expected: %d, got: %d\n", ASTERISK, t->type);
+    token_repr(t);
+    assert(t->type == ASTERISK);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LPAREN);
+  if (t->type != LPAREN) {
+    printf("expected: %d, got: %d\n", LPAREN, t->type);
+    token_repr(t);
+    assert(t->type == LPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, MINUS);
+  if (t->type != MINUS) {
+    printf("expected: %d, got: %d\n", MINUS, t->type);
+    token_repr(t);
+    assert(t->type == MINUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, RPAREN);
+  if (t->type != RPAREN) {
+    printf("expected: %d, got: %d\n", RPAREN, t->type);
+    token_repr(t);
+    assert(t->type == RPAREN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SLASH);
+  if (t->type != SLASH) {
+    printf("expected: %d, got: %d\n", SLASH, t->type);
+    token_repr(t);
+    assert(t->type == SLASH);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, IDENTIFIER);
+  if (t->type != IDENTIFIER) {
+    printf("expected: %d, got: %d\n", IDENTIFIER, t->type);
+    token_repr(t);
+    assert(t->type == IDENTIFIER);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SEMICOLON);
+  if (t->type != SEMICOLON) {
+    printf("expected: %d, got: %d\n", SEMICOLON, t->type);
+    token_repr(t);
+    assert(t->type == SEMICOLON);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
 
 void test_operators() {
   struct lexer *l = lexer_init(operators, strlen(operators));
   struct token *t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASSIGN);
+  if (t->type != ASSIGN) {
+    printf("expected: %d, got: %d\n", ASSIGN, t->type);
+    token_repr(t);
+    assert(t->type == ASSIGN);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, FUNCTION_R);
+  if (t->type != FUNCTION_R) {
+    printf("expected: %d, got: %d\n", FUNCTION_R, t->type);
+    token_repr(t);
+    assert(t->type == FUNCTION_R);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, EQUAL);
+  if (t->type != EQUAL) {
+    printf("expected: %d, got: %d\n", EQUAL, t->type);
+    token_repr(t);
+    assert(t->type == EQUAL);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, PLUS);
+  if (t->type != PLUS) {
+    printf("expected: %d, got: %d\n", PLUS, t->type);
+    token_repr(t);
+    assert(t->type == PLUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, SLASH);
+  if (t->type != SLASH) {
+    printf("expected: %d, got: %d\n", SLASH, t->type);
+    token_repr(t);
+    assert(t->type == SLASH);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, ASTERISK);
+  if (t->type != ASTERISK) {
+    printf("expected: %d, got: %d\n", ASTERISK, t->type);
+    token_repr(t);
+    assert(t->type == ASTERISK);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, MINUS);
+  if (t->type != MINUS) {
+    printf("expected: %d, got: %d\n", MINUS, t->type);
+    token_repr(t);
+    assert(t->type == MINUS);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, GT);
+  if (t->type != GT) {
+    printf("expected: %d, got: %d\n", GT, t->type);
+    token_repr(t);
+    assert(t->type == GT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LT);
+  if (t->type != LT) {
+    printf("expected: %d, got: %d\n", LT, t->type);
+    token_repr(t);
+    assert(t->type == LT);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, LT_EQ);
+  if (t->type != LT_EQ) {
+    printf("expected: %d, got: %d\n", LT_EQ, t->type);
+    token_repr(t);
+    assert(t->type == LT_EQ);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, GT_EQ);
+  if (t->type != GT_EQ) {
+    printf("expected: %d, got: %d\n", GT_EQ, t->type);
+    token_repr(t);
+    assert(t->type == GT_EQ);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, EQ_EQ);
+  if (t->type != EQ_EQ) {
+    printf("expected: %d, got: %d\n", EQ_EQ, t->type);
+    token_repr(t);
+    assert(t->type == EQ_EQ);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, BANG);
+  if (t->type != BANG) {
+    printf("expected: %d, got: %d\n", BANG, t->type);
+    token_repr(t);
+    assert(t->type == BANG);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, NOT_EQ);
+  if (t->type != NOT_EQ) {
+    printf("expected: %d, got: %d\n", NOT_EQ, t->type);
+    token_repr(t);
+    assert(t->type == NOT_EQ);
+  }
   t = lexer_next_token(l);
-  ASSERT_TOKEN_TYPE(t, END_OF_FILE);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
   lexer_free(l);
 }
