@@ -57,8 +57,31 @@ char *t_expr_repr(struct expression *expr) {
 
   switch (expr->type) {
   case EXPR_LITERAL: {
-    return strndup(expr->literal.token->literal,
-                   expr->literal.token->literal_len);
+    switch (expr->literal.literal_type) {
+    case LITERAL_INT: {
+      char buffer[expr->literal.token->literal_len + 1];
+      snprintf(buffer, sizeof(buffer), "%ld", expr->literal.value.int_value);
+      buffer[expr->literal.token->literal_len] = '\0';
+      return strndup(buffer, expr->literal.token->literal_len);
+    }; break;
+    case LITERAL_FLOAT: {
+      char buffer[expr->literal.token->literal_len + 1];
+      snprintf(buffer, sizeof(buffer), "%f", expr->literal.value.float_value);
+      return strndup(buffer, expr->literal.token->literal_len);
+    }; break;
+    case LITERAL_STRING: {
+      return strndup(expr->literal.token->literal,
+                     expr->literal.token->literal_len);
+    }; break;
+    case LITERAL_BOOL: {
+      return strndup(expr->literal.token->literal,
+                     expr->literal.token->literal_len);
+    }; break;
+    case LITERAL_CHAR: {
+      return strndup(expr->literal.token->literal,
+                     expr->literal.token->literal_len);
+    }; break;
+    }
   }
   case EXPR_IDENTIFIER: {
     return strndup(expr->identifier_expr.token->literal,
