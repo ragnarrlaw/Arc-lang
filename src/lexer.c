@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct token_pool *token_pool_init();
+void token_pool_push(struct token_pool *, struct token *);
+void token_pool_free(struct token_pool *);
+
 void lexer_advance(struct lexer *l);
 void lexer_transition(struct lexer *l);
 struct token *lexer_indent_or_key(struct lexer *l);
@@ -16,6 +20,53 @@ struct token *lexer_punctuation(struct lexer *l);
 struct token *lexer_comment(struct lexer *l);
 struct token *lexer_error(struct lexer *l, const char *start, int len);
 void lexer_whitespace(struct lexer *l);
+
+struct token_pool *token_pool_init() {
+  struct token_pool *pool =
+      (struct token_pool *)malloc(sizeof(struct token_pool));
+  if (!pool) {
+    ERROR_LOG("error while allocating memory");
+    return NULL;
+  }
+  pool->head = NULL;
+  pool->count = 0;
+  return pool;
+}
+
+void token_pool_push(struct token_pool *pool, struct token *t) {
+  if (!pool) {
+    return;
+  }
+  struct token_node *node =
+      (struct token_node *)malloc(sizeof(struct token_node));
+  if (!node) {
+    ERROR_LOG("error while allocating memory");
+    return;
+  }
+  node->t = t;
+  if (!pool->head) {
+    pool->head = node;
+  } else {
+    node->next = pool->head;
+    pool->head = node;
+  }
+  pool->count++;
+}
+
+void token_pool_free(struct token_pool *pool) {
+  if (!pool) {
+    pool = NULL;
+  }
+  struct token_node *node = pool->head;
+  while (node) {
+    struct token_node *tmp = node;
+    node = node->next;
+    token_free(tmp->t);
+    free(tmp);
+  }
+  free(pool);
+  pool = NULL;
+}
 
 struct lexer *lexer_init(const char *buffer, long length) {
   struct lexer *l = (struct lexer *)malloc(sizeof(struct lexer));
@@ -30,53 +81,44 @@ struct lexer *lexer_init(const char *buffer, long length) {
   l->line = 1;
   l->column = 0;
   l->current_state = STATE_START;
+  l->pool = token_pool_init();
   lexer_advance(l);
   return l;
 }
 
 struct token *lexer_next_token(struct lexer *l) {
   lexer_whitespace(l);
-
+  struct token *t = NULL;
   if (l->current_char == '#') {
     l->current_state = STATE_COMMENT;
-    return lexer_comment(l);
-  }
-
-  if (isalpha(l->current_char)) {
+    t = lexer_comment(l);
+  } else if (isalpha(l->current_char)) {
     l->current_state = STATE_IDENT_OR_KEY;
-    return lexer_indent_or_key(l);
-  }
-
-  if (isdigit(l->current_char)) {
+    t = lexer_indent_or_key(l);
+  } else if (isdigit(l->current_char)) {
     l->current_state = STATE_NUMERICAL;
-    return lexer_numerical(l);
-  }
-
-  if (l->current_char == '"') {
+    t = lexer_numerical(l);
+  } else if (l->current_char == '"') {
     l->current_state = STATE_STRING_LITERAL;
-    return lexer_string_literal(l);
-  }
-
-  if (l->current_char == ':' || l->current_char == '+' ||
-      l->current_char == '-' || l->current_char == '/' ||
-      l->current_char == '=' || l->current_char == '>' ||
-      l->current_char == '!' || l->current_char == '<' ||
-      l->current_char == '*') {
+    t = lexer_string_literal(l);
+  } else if (l->current_char == ':' || l->current_char == '+' ||
+             l->current_char == '-' || l->current_char == '/' ||
+             l->current_char == '=' || l->current_char == '>' ||
+             l->current_char == '!' || l->current_char == '<' ||
+             l->current_char == '*') {
     l->current_state = STATE_OPERATOR;
-    return lexer_operator(l);
-  }
-
-  if (ispunct(l->current_char)) {
+    t = lexer_operator(l);
+  } else if (ispunct(l->current_char)) {
     l->current_state = STATE_PUNCTUATION;
-    return lexer_punctuation(l);
-  }
-
-  if (l->current_char == 0) {
+    t = lexer_punctuation(l);
+  } else if (l->current_char == 0) {
     l->current_state = STATE_EOF;
-    return token_init(END_OF_FILE, l->position, 0, l->line, l->column);
+    t = token_init(END_OF_FILE, l->position, 0, l->line, l->column);
+  } else {
+    t = lexer_error(l, l->position, 1);
   }
-
-  return lexer_error(l, l->position, 1);
+  token_pool_push(l->pool, t);
+  return t;
 }
 
 void lexer_advance(struct lexer *l) {
@@ -272,6 +314,9 @@ void lexer_whitespace(struct lexer *l) {
 
 void lexer_free(struct lexer *l) {
   if (l != NULL) {
+    if (l->pool) {
+      token_pool_free(l->pool);
+    }
     free(l);
   }
 }

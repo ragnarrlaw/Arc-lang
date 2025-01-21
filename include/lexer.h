@@ -5,6 +5,16 @@
 
 typedef unsigned char byte;
 
+struct token_node {
+  struct token *t;
+  struct token_node *next;
+};
+
+struct token_pool {
+  struct token_node *head;
+  size_t count;
+};
+
 enum LEXER_STATE {
   STATE_START,
   STATE_IDENT_OR_KEY,
@@ -26,6 +36,7 @@ struct lexer {
   long line;
   long column;
   enum LEXER_STATE current_state;
+  struct token_pool *pool;
 };
 
 struct lexer *lexer_init(const char *buffer, long length);
