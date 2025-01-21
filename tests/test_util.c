@@ -64,10 +64,10 @@ char *t_expr_repr(struct expression *expr) {
     return strndup(expr->identifier_expr.token->literal,
                    expr->identifier_expr.token->literal_len);
   }
-  case EXPR_UNARY: {
-    repr = str_concat("(", 1, expr->unary_expr.op->literal,
-                      expr->unary_expr.op->literal_len);
-    char *right = t_expr_repr(expr->unary_expr.right);
+  case EXPR_PREFIX: {
+    repr = str_concat("(", 1, expr->infix_expr.op->literal,
+                      expr->infix_expr.op->literal_len);
+    char *right = t_expr_repr(expr->infix_expr.right);
     char *temp = str_concat(repr, strlen(repr), right, strlen(right));
     free(repr);
     repr = str_concat(temp, strlen(temp), ")", 1);
@@ -75,25 +75,22 @@ char *t_expr_repr(struct expression *expr) {
     free(right);
     return repr;
   }
-  case EXPR_BINARY: {
+  case EXPR_INFIX: {
     repr = str_concat("(", 1, "", 0);
-    char *left = t_expr_repr(expr->binary_expr.left);
+    char *left = t_expr_repr(expr->infix_expr.left);
     char *temp = str_concat(repr, strlen(repr), left, strlen(left));
     free(repr);
-    repr = str_concat(temp, strlen(temp), expr->binary_expr.op->literal,
-                      expr->binary_expr.op->literal_len);
+    repr = str_concat(temp, strlen(temp), expr->infix_expr.op->literal,
+                      expr->infix_expr.op->literal_len);
     free(temp);
-    temp = str_concat(repr, strlen(repr), expr->binary_expr.op->literal,
-                      expr->binary_expr.op->literal_len);
+    char *right = t_expr_repr(expr->infix_expr.right);
+    temp = str_concat(repr, strlen(repr), right, strlen(right));
     free(repr);
-    char *right = t_expr_repr(expr->binary_expr.right);
-    repr = str_concat(temp, strlen(temp), right, strlen(right));
+    repr = str_concat(temp, strlen(temp), ")", 1);
     free(temp);
-    temp = str_concat(repr, strlen(repr), ")", 1);
-    free(repr);
     free(left);
     free(right);
-    return temp;
+    return repr;
   }
   default:
     return strdup("");
