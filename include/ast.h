@@ -10,8 +10,6 @@ enum LITERAL_TYPE {
   LITERAL_STRING,
   LITERAL_CHAR,
   LITERAL_BOOL,
-  LITERAL_ARRAY,
-  LITERAL_STRUCT,
 };
 
 /**
@@ -30,31 +28,12 @@ struct string_literal {
   size_t length;
 };
 
-struct array_literal {
-  struct literal *elements;
-  size_t count;
-};
-
-/**
- NOTE: at the time of initializing a struct literal make sure to
-       use the strndup to make duplicates of the field names and
- */
-struct struct_literal {
-  char *name;
-  size_t name_len;
-  struct literal **fields;
-  char **fieldnames;
-  size_t field_count;
-};
-
 union literal_value {
   long int_value;
   float float_value;
   char char_value;
   bool bool_value;
   struct string_literal *string_literal;
-  struct array_literal *array_literal;
-  struct struct_literal *struct_literal;
 };
 
 struct literal {
@@ -66,75 +45,36 @@ struct literal {
 enum EXPRESSION_TYPE {
   EXPR_LITERAL,    // 5; or 5
   EXPR_IDENTIFIER, // identifier cases -> a; or a
-  EXPR_UNARY,   /** binary operators -> -10 or !true -> operators !, ++, -- and
+  EXPR_PREFIX,  /** binary operators -> -10 or !true -> operators !, ++, -- and
                  * - are prefix operators */
-  EXPR_BINARY,  // binary operators -> a + b;
-  EXPR_FN_CALL, // add(a, b);
-  EXPR_IF,      // if statement -> if (condition) { ... }
-  EXPR_FOR,     // for loop -> for (init; condition; update) { ... }
-  EXPR_WHILE,   // while loop -> while (condition) { ... }
+  EXPR_INFIX,   // binary operators -> a + b;
+  EXPR_POSTFIX, // unary operators -> ++, --
 };
 
 struct expression {
   enum EXPRESSION_TYPE type;
   union {
-    // literal expressions (e.g. 3, 4.5, "string")
     struct literal literal;
 
-    // variable expressions (e.g. x, y)
     struct {
       struct token *token;
     } identifier_expr;
 
-    // binary expressions (e.g. a + b)
     struct {
-      struct token *bin_token;
+      struct token *op;
+      struct expression *right;
+    } prefix_expr;
+
+    struct {
       struct expression *left;
       struct token *op;
       struct expression *right;
-    } binary_expr;
+    } infix_expr;
 
-    /** unary operator expressions (e.g. -a and !true) and the prefix operators
-     * -> this is the prefix expression */
     struct {
+      struct expression *left;
       struct token *op;
-      struct expression *right;
-    } unary_expr;
-
-    // function call expressions (e.g. add(a, b))
-    struct {
-      struct token *fn_name;
-      struct expression **args;
-      size_t arg_count;
-    } fn_call_expr;
-
-    // if expressions (e.g. if (condition) { ... })
-    struct {
-      struct token *token;             // if
-      struct expression *condition;    // if condition
-      struct expression **consequence; // if block
-      size_t consequence_count;        // number of statements in the if block
-      struct expression **alternative; // else block
-      size_t alternative_count;        // number of statements in the else block
-    } if_expr;
-
-    // for expressions (e.g. for (init; condition; update) { ... })
-    struct {
-      struct token *token;          // for
-      struct statement *init;       // init statement
-      struct expression *condition; // condition
-      struct statement *update;     // update statement
-      struct expression **body;     // for block
-      size_t body_count;            // number of statements in the for block
-    } for_expr;
-
-    // while expressions (e.g. while (condition) { ... })
-    struct {
-      struct token *token;          // while
-      struct expression *condition; // condition
-      struct expression **body;     // while block
-      size_t body_count;            // number of statements in the while block
-    } while_expr;
+    } postfix_expr;
   };
 };
 
@@ -147,7 +87,6 @@ enum STATEMENT_TYPE {
 struct statement {
   enum STATEMENT_TYPE type;
   union {
-    // let statements (e.g. let x := 5)
     struct {
       struct token *token;
       struct token *identifier;
@@ -155,13 +94,11 @@ struct statement {
       struct expression *value;
     } let_stmt;
 
-    // return statements (e.g. return 5)
     struct {
       struct token *token;
       struct expression *value;
     } return_stmt;
 
-    // expression statements (e.g. 5 + 5;)
     struct {
       struct token *token;
       struct expression *expr;
