@@ -3,6 +3,7 @@
 
 #include "token.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 enum LITERAL_TYPE {
   LITERAL_INT,
@@ -107,8 +108,9 @@ struct statement {
 };
 
 struct program {
-  struct statement **statements; // a program is a bunch of statements
+  struct statement **statements; // statement pointer array
   size_t statement_count;        // number of statements in the program
+  size_t statement_capacity;     // capacity of the statements array
 };
 
 struct program *ast_program_init();

@@ -135,23 +135,43 @@ struct program *ast_program_init() {
     ERROR_LOG("error while allocating memory");
     return NULL;
   }
-  p->statements = (struct statement **)malloc(sizeof(struct statement *));
+  p->statement_capacity = 4;
+  p->statements = malloc(sizeof(struct statement *) * p->statement_capacity);
   if (p->statements == NULL) {
     ERROR_LOG("error while allocating memory");
+    free(p);
     return NULL;
   }
   p->statement_count = 0;
-  p->statements = NULL;
   return p;
 }
 
 void ast_program_push_statement(struct program *p, struct statement *s) {
-  p->statements = (struct statement **)realloc(
-      p->statements, sizeof(struct statement *) * (p->statement_count + 1));
-  if (p->statements == NULL) {
-    ERROR_LOG("error while allocating memory");
+  if (p == NULL || s == NULL) {
+    ERROR_LOG("program or statement is NULL");
     return;
   }
+
+  if (p->statements == NULL) {
+    p->statement_capacity = 4;
+    p->statements = malloc(sizeof(struct statement *) * p->statement_capacity);
+    if (p->statements == NULL) {
+      ERROR_LOG("error while allocating memory");
+      return;
+    }
+    p->statement_count = 0;
+  } else {
+    if (p->statement_count >= p->statement_capacity) {
+      p->statement_capacity *= 2;
+      p->statements = realloc(p->statements, sizeof(struct statement *) *
+                                                 p->statement_capacity);
+      if (p->statements == NULL) {
+        ERROR_LOG("error while allocating memory");
+        return;
+      }
+    }
+  }
+
   p->statements[p->statement_count] = s;
   p->statement_count++;
 }
