@@ -2,13 +2,14 @@
 #include "ast.h"
 #include "parser.h"
 #include "test_util.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 struct test_comp {
-  const char *input;
-  const char *expected;
+  const char input[20];
+  const char expected[20];
 };
 
 void parser_run_all_tests() {
@@ -20,10 +21,11 @@ void parser_run_all_tests() {
 
 void let_statement_test() {
   const struct test_comp tests[] = {
-      // {"let x := 5;", "letx:=5"},
+      // (struct test_comp){"let x := 5;", "letx:=5"},
       // {"let x := 5.4;", "letx:=5.4"},
-      {"let x := \"hello, world\";", "letx:=hello, world"},
+      // {"let x := \"string\";", "letx:=\"string\""},
       // {"let x := true;", "letx:=true"},
+      {"let x := 10 + 2;", "letx:=(10+2)"},
   };
   for (int i = 0; i < 1; i++) {
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
@@ -33,12 +35,20 @@ void let_statement_test() {
       printf("error while parsing program\n");
     }
     char *repr = t_stmt_repr(program->statements[0]);
-    // printf("repr: %s\n", repr);
+
+    assert(program->statement_count == 1);
+
+    if (parser_has_errors(p)) {
+      parser_print_errors(p);
+    }
+
     if (strcmp(repr, tests[i].expected) != 0) {
       printf("expected: %s, got: %s\n", tests[i].expected, repr);
     }
     free(repr);
+
     ast_program_free(program);
+    parser_free(p);
   }
 }
 
