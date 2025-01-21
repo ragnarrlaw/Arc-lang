@@ -6,9 +6,17 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define TRACE_FN printf("%s:%d\n", __func__, __LINE__)
+
+struct OP_POWER {
+  int_fast8_t lbp;
+  int_fast8_t rbp;
+};
 
 struct statement *parser_parse_statement(struct parser *);
 
@@ -29,17 +37,21 @@ struct statement *parser_parse_return_statement(struct parser *);
 struct statement *parser_parse_expression_statement(struct parser *);
 
 // expressions
-struct expression *parser_parse_expression(struct parser *,
-                                           enum OPERATOR_PRECEDENCE);
+struct expression *parser_parse_expr_bp(struct parser *p,
+                                        enum OPERATOR_PRECEDENCE min_bp);
+
 struct expression *parser_parse_identifier(struct parser *);
 struct expression *parser_parse_unary_operator(struct parser *);
 /** this is the only function for parsing binary operators infix operators */
 struct expression *parser_parse_binary_operator(struct parser *,
                                                 struct expression *);
+struct expression *parser_parse_postfix_operator(struct parser *,
+                                                 struct expression *);
 struct expression *parser_parse_integer_literal(struct parser *);
 struct expression *parser_parse_float_literal(struct parser *);
 struct expression *parser_parse_string_literal(struct parser *);
 struct expression *parser_parse_boolean_literal(struct parser *p);
+
 struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
@@ -51,55 +63,215 @@ parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type);
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type);
 
 // precedence of operators -> for parsing expressions
-struct token_precedence parser_get_token_precedence(enum TOKEN_TYPE type);
-enum OPERATOR_PRECEDENCE parser_get_next_token_precedence(struct parser *p);
-enum OPERATOR_PRECEDENCE parser_get_current_token_precedence(struct parser *p);
+struct OP_POWER parser_prefix_binding_power(enum TOKEN_TYPE type);
+struct OP_POWER parser_infix_binding_power(enum TOKEN_TYPE type);
+struct OP_POWER parser_postfix_binding_power(enum TOKEN_TYPE type);
+
+// ========================================================================
 
 /**
-defines the precedence table for the operators
-right associative token have a higher right binding
-value and a lower left binding value than their right
+ * initialize a parser
  */
-struct token_precedence parser_get_token_precedence(enum TOKEN_TYPE type) {
-  switch (type) {
-  case EQ_EQ:
-  case NOT_EQ:
-    return (struct token_precedence){EQUALITY, EQUALITY};
-  case LT:
-  case GT:
-    return (struct token_precedence){RELATIONAL, RELATIONAL};
-  case PLUS:
-  case MINUS:
-    return (struct token_precedence){ADDITIVE, ADDITIVE};
-  case ASTERISK:
-  case SLASH:
-    return (struct token_precedence){MULTIPLICATIVE, MULTIPLICATIVE};
-  case AND:
-    return (struct token_precedence){LOGICAL_AND, LOGICAL_AND};
-  case OR:
-    return (struct token_precedence){LOGICAL_OR, LOGICAL_OR};
-  case ASSIGN:
-    return (struct token_precedence){ASSIGNMENT,
-                                     ASSIGNMENT + 1}; // right-associative
-  case INC:
-  case DEC:
-    return (struct token_precedence){POSTFIX, POSTFIX};
-  case COMMA:
-    return (struct token_precedence){LOWEST, LOWEST};
-  default:
-    return (struct token_precedence){LOWEST, LOWEST};
+struct parser *parser_init(struct lexer *l) {
+  TRACE_FN;
+  struct parser *p = (struct parser *)malloc(sizeof(struct parser));
+  if (p == NULL) {
+    ERROR_LOG("error while allocating memory");
+    return NULL;
+  }
+  p->lexer = l;
+  p->errors = NULL;
+  parser_next_token(p); // fill the next token field with a token
+  parser_next_token(p); // fill the current token field with a token
+  return p;
+}
+
+/**
+ * free (deallocate) a parser
+ */
+void parser_free(struct parser *p) {
+  TRACE_FN;
+  if (p != NULL) {
+    if (parser_has_errors(p)) {
+      struct parser_error *error = p->errors;
+      while (error) {
+        struct parser_error *tmp = error;
+        error = tmp->next;
+        free(tmp->message);
+        free(tmp);
+      }
+    }
+    lexer_free(p->lexer);
+    free(p);
   }
 }
 
-enum OPERATOR_PRECEDENCE parser_get_next_token_precedence(struct parser *p) {
-  return parser_get_token_precedence(p->next_token->type).lbp;
+/**
+ * start parsing a program
+ */
+struct program *parser_parse_program(struct parser *p) {
+  TRACE_FN;
+  struct program *program = (struct program *)malloc(sizeof(struct program));
+
+  while (!parser_current_token_is(p, END_OF_FILE)) {
+    struct statement *stmt = parser_parse_statement(p);
+    if (stmt != NULL) {
+      ast_program_push_statement(program, stmt);
+    }
+    parser_next_token(p);
+  }
+  return program;
 }
 
-enum OPERATOR_PRECEDENCE parser_get_current_token_precedence(struct parser *p) {
-  return parser_get_token_precedence(p->current_token->type).rbp;
+/**
+ * add an error to the parser error collection
+ */
+void parser_add_error(struct parser *p, const char *format, ...) {
+  TRACE_FN;
+  va_list args;
+  va_start(args, format);
+  char *message = malloc(PARSER_ERR_MSG_LEN);
+  vsnprintf(message, PARSER_ERR_MSG_LEN, format, args);
+  va_end(args);
+
+  struct parser_error *error =
+      (struct parser_error *)malloc(sizeof(struct parser_error));
+  error->message = message;
+  error->line = p->current_token->line_number;
+  error->column = p->current_token->col_number;
+  error->next = p->errors;
+  p->errors = error;
 }
 
+/**
+ * print all the errors in the parser
+ */
+void parser_print_errors(struct parser *p) {
+  TRACE_FN;
+  struct parser_error *error = p->errors;
+  while (error) {
+    fprintf(stderr, "Error at line %d, column %d: %s\n", error->line,
+            error->column, error->message);
+    error = error->next;
+  }
+}
+
+bool parser_has_errors(struct parser *p) {
+  TRACE_FN;
+  return p->errors != NULL;
+}
+
+/**
+ * advance the parser to the next token
+ */
+void parser_next_token(struct parser *p) {
+  TRACE_FN;
+  p->current_token = p->next_token;
+  p->next_token = lexer_next_token(p->lexer);
+}
+
+/**
+ * assert current token's type
+ */
+bool parser_current_token_is(struct parser *p, enum TOKEN_TYPE type) {
+  TRACE_FN;
+  return p->current_token->type == type;
+}
+
+/**
+ * assert peek token's type
+ */
+bool parser_next_token_is(struct parser *p, enum TOKEN_TYPE type) {
+  TRACE_FN;
+  return p->next_token->type == type;
+}
+
+/**
+ * if the next token is the expected token advance the parser, used to enforce
+ * constructs
+ */
+bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE type) {
+  TRACE_FN;
+  if (parser_next_token_is(p, type)) {
+    parser_next_token(p);
+    return true;
+  } else {
+    parser_add_error(p, "Expected %s, got %s", token_type_to_str(type),
+                     token_type_to_str(p->next_token->type));
+    return false;
+  }
+}
+
+/**
+ * defines the binding power for the prefix(unary) operators
+ */
+struct OP_POWER parser_prefix_binding_power(enum TOKEN_TYPE type) {
+  TRACE_FN;
+  switch (type) {
+  case BANG:
+  case PLUS:
+  case MINUS:
+  case INC:
+  case DEC:
+    return (struct OP_POWER){PREFIX, PREFIX + 1};
+  default:
+    return (struct OP_POWER){LOWEST, LOWEST + 1};
+  }
+}
+
+/**
+ * defines the binding power for the infix(binary) operators
+ */
+struct OP_POWER parser_infix_binding_power(enum TOKEN_TYPE type) {
+  TRACE_FN;
+  switch (type) {
+  case PLUS:
+  case MINUS:
+    return (struct OP_POWER){ADDITIVE, ADDITIVE + 1};
+  case ASTERISK:
+  case SLASH:
+  case MOD:
+    return (struct OP_POWER){MULTIPLICATIVE, MULTIPLICATIVE + 1};
+  case EQ_EQ:
+  case NOT_EQ:
+    return (struct OP_POWER){EQUALITY, EQUALITY + 1};
+  case LT:
+  case GT:
+  case LT_EQ:
+  case GT_EQ:
+    return (struct OP_POWER){RELATIONAL, RELATIONAL + 1};
+  case AND:
+    return (struct OP_POWER){LOGICAL_AND, LOGICAL_AND + 1};
+  case OR:
+    return (struct OP_POWER){LOGICAL_OR, LOGICAL_OR + 1};
+  case ASSIGN:
+    return (struct OP_POWER){ASSIGNMENT, ASSIGNMENT - 1};
+  default:
+    return (struct OP_POWER){LOWEST, LOWEST + 1};
+  }
+}
+
+/**
+ * defines the binding power for the postfix operators
+ */
+struct OP_POWER parser_postfix_binding_power(enum TOKEN_TYPE type) {
+  TRACE_FN;
+  switch (type) {
+  case INC:
+  case DEC:
+    return (struct OP_POWER){POSTFIX, POSTFIX + 1};
+  default:
+    return (struct OP_POWER){-1, -1};
+  }
+}
+
+// ========================================================================
+
+/**
+ * get the prefix parse function for the given token type
+ */
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
+  TRACE_FN;
   switch (type) {
   case IDENTIFIER:
     return parser_parse_identifier;
@@ -120,108 +292,30 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
   }
 }
 
+/**
+ * get the infix parse function for the given token type
+ */
 parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type) {
-  return parser_parse_binary_operator; // for all the binary operators, one
-                                       // parsing function
+  TRACE_FN;
+  return parser_parse_binary_operator;
 }
 
+/**
+ * get the postfix parse function for the given token type
+ */
 parser_parse_postfix_fn parser_get_postfix_fn(enum TOKEN_TYPE type) {
-  return NULL;
+  TRACE_FN;
+  return parser_parse_postfix_operator;
 }
 
-struct parser *parser_init(struct lexer *l) {
-  struct parser *p = (struct parser *)malloc(sizeof(struct parser));
-  if (p == NULL) {
-    ERROR_LOG("error while allocating memory");
-    return NULL;
-  }
-  p->lexer = l;
-  p->errors = NULL;
-  parser_next_token(p); // fill the next token field with a token
-  parser_next_token(p); // fill the current token field with a token
-  return p;
-}
+// ========================================================================
 
-void parser_free(struct parser *p) {
-  if (p != NULL) {
-    if (parser_has_errors(p)) {
-      struct parser_error *error = p->errors;
-      while (error) {
-        struct parser_error *tmp = error;
-        error = tmp->next;
-        free(tmp->message);
-        free(tmp);
-      }
-    }
-    lexer_free(p->lexer);
-    free(p);
-  }
-}
-
-struct program *parser_parse_program(struct parser *p) {
-  struct program *program = (struct program *)malloc(sizeof(struct program));
-
-  while (!parser_current_token_is(p, END_OF_FILE)) {
-    struct statement *stmt = parser_parse_statement(p);
-    if (stmt != NULL) {
-      ast_program_push_statement(program, stmt);
-    }
-    parser_next_token(p);
-  }
-  return program;
-}
-
-void parser_add_error(struct parser *p, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  char *message = malloc(PARSER_ERR_MSG_LEN);
-  vsnprintf(message, PARSER_ERR_MSG_LEN, format, args);
-  va_end(args);
-
-  struct parser_error *error =
-      (struct parser_error *)malloc(sizeof(struct parser_error));
-  error->message = message;
-  error->line = p->current_token->line_number;
-  error->column = p->current_token->col_number;
-  error->next = p->errors;
-}
-
-void parser_print_errors(struct parser *p) {
-  struct parser_error *error = p->errors;
-  while (error) {
-    fprintf(stderr, "Error at line %d, column %d: %s\n", error->line,
-            error->column, error->message);
-    error = error->next;
-  }
-}
-
-bool parser_has_errors(struct parser *p) { return p->errors != NULL; }
-
-void parser_next_token(struct parser *p) {
-  p->current_token = p->next_token;
-  p->next_token = lexer_next_token(p->lexer);
-}
-
-bool parser_current_token_is(struct parser *p, enum TOKEN_TYPE type) {
-  return p->current_token->type == type;
-}
-
-bool parser_next_token_is(struct parser *p, enum TOKEN_TYPE type) {
-  return p->next_token->type == type;
-}
-
-bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE type) {
-  if (parser_next_token_is(p, type)) {
-    parser_next_token(p);
-    return true;
-  } else {
-    parser_add_error(p, "Expected %s, got %s", token_type_to_str(type),
-                     token_type_to_str(p->next_token->type));
-    return false;
-  }
-}
-
+/**
+ * parse a statement -> let, return, or expression (expressions along are valid
+ * statements)
+ */
 struct statement *parser_parse_statement(struct parser *p) {
+  TRACE_FN;
   switch (p->current_token->type) {
   case LET:
     return parser_parse_let_statement(p);
@@ -231,9 +325,12 @@ struct statement *parser_parse_statement(struct parser *p) {
     return parser_parse_expression_statement(p);
   }
 }
-
-// let <identifier> := <expression>;
+/**
+ * parse let statements
+ * let <identifier> := <expression>;
+ */
 struct statement *parser_parse_let_statement(struct parser *p) {
+  TRACE_FN;
   struct statement *stmt = ast_statement_init(STMT_LET);
   if (stmt != NULL) {
     stmt->let_stmt.token = p->current_token;
@@ -250,28 +347,32 @@ struct statement *parser_parse_let_statement(struct parser *p) {
 
     parser_next_token(p);
 
-    struct expression *expr = parser_parse_expression(p, LOWEST);
-    if (expr == NULL) {
+    struct expression *expr = parser_parse_expr_bp(p, LOWEST);
+    if (!expr) {
       ast_statement_free(stmt);
       return NULL;
     }
     stmt->let_stmt.value = expr;
-
+    parser_next_token(p);
     return stmt;
   }
   return NULL;
 }
 
-// return <expression>;
+/**
+ * parse return statements
+ * return <expression>;
+ */
 struct statement *parser_parse_return_statement(struct parser *p) {
+  TRACE_FN;
   struct statement *stmt = ast_statement_init(STMT_RETURN);
-  if (stmt == NULL) {
+  if (!stmt) {
     return NULL;
   }
   stmt->return_stmt.token = p->current_token;
   parser_next_token(p);
-  struct expression *expr = parser_parse_expression(p, LOWEST);
-  if (expr == NULL) {
+  struct expression *expr = parser_parse_expr_bp(p, LOWEST);
+  if (!expr) {
     ast_statement_free(stmt);
     return NULL;
   }
@@ -279,14 +380,19 @@ struct statement *parser_parse_return_statement(struct parser *p) {
   return stmt;
 }
 
-// <expression>
+/**
+ * parse expression statements
+ * <expression>; or <expression> (in this case the semicolon is optional)
+ */
 struct statement *parser_parse_expression_statement(struct parser *p) {
+  TRACE_FN;
   struct statement *stmt = ast_statement_init(STMT_EXPRESSION);
   if (stmt == NULL) {
     return NULL;
   }
   stmt->expr_stmt.token = p->current_token;
-  struct expression *expr = parser_parse_expression(p, LOWEST);
+
+  struct expression *expr = parser_parse_expr_bp(p, LOWEST);
 
   if (expr == NULL) {
     ast_statement_free(stmt);
@@ -300,32 +406,130 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
   return stmt;
 }
 
-struct expression *
-parser_parse_expression(struct parser *p, enum OPERATOR_PRECEDENCE precedence) {
+/**
+ * parse the expression with the given binding power
+ */
+struct expression *parser_parse_expr_bp(struct parser *p,
+                                        enum OPERATOR_PRECEDENCE min_bp) {
+  TRACE_FN;
   parser_parse_prefix_fn prefix_fn =
       parser_get_prefix_fn(p->current_token->type);
-
   if (prefix_fn == NULL) {
     parser_add_error(p, "no prefix parse function for %s",
                      token_type_to_str(p->current_token->type));
     return NULL;
   }
 
-  struct expression *left = prefix_fn(p);
+  struct expression *lhs = prefix_fn(p);
 
-  while (!parser_next_token_is(p, SEMICOLON) &&
-         precedence < parser_get_next_token_precedence(p)) {
-    parser_parse_infix_fn infix_fn = parser_get_infix_fn(p->next_token->type);
-    if (infix_fn == NULL) {
-      return left;
+  for (;;) {
+    if (parser_next_token_is(p, SEMICOLON) ||
+        parser_next_token_is(p, END_OF_FILE))
+      break;
+
+    struct OP_POWER binding_power =
+        parser_postfix_binding_power(p->next_token->type);
+    if (binding_power.lbp > -1) {
+      if (binding_power.lbp < min_bp) {
+        break;
+      }
+      parser_next_token(p);
+      parser_parse_postfix_fn postfix_fn =
+          parser_get_postfix_fn(p->current_token->type);
+      if (postfix_fn == NULL) {
+        parser_add_error(p, "no postfix parse function for %s",
+                         token_type_to_str(p->current_token->type));
+        return NULL;
+      }
+      lhs = postfix_fn(p, lhs);
     }
+
+    binding_power = parser_infix_binding_power(p->next_token->type);
+
+    if (binding_power.lbp < min_bp) {
+      break;
+    }
+
     parser_next_token(p);
-    left = infix_fn(p, left);
+
+    parser_parse_infix_fn infix_fn =
+        parser_get_infix_fn(p->current_token->type);
+    if (infix_fn == NULL) {
+      parser_add_error(p, "no infix parse function for %s",
+                       token_type_to_str(p->current_token->type));
+      return NULL;
+    }
+    lhs = infix_fn(p, lhs);
   }
-  return left;
+  return lhs;
 }
 
+/**
+ * parse unary(prefix expressions)
+ * unary_operator<expression> -> -<expression> or !<expression>
+ */
+struct expression *parser_parse_unary_operator(struct parser *p) {
+  TRACE_FN;
+  struct expression *expr = ast_expression_init(EXPR_PREFIX);
+  if (!expr) {
+    return NULL;
+  }
+  expr->prefix_expr.op = p->current_token;
+  struct OP_POWER b_pr = parser_prefix_binding_power(p->current_token->type);
+  parser_next_token(p);
+  expr->prefix_expr.right = parser_parse_expr_bp(p, b_pr.rbp);
+  if (!expr->prefix_expr.right) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  return expr;
+}
+
+/**
+ * parse binary(infix) operator related expressions
+ * <expression>binary_operator<expression>
+ */
+struct expression *parser_parse_binary_operator(struct parser *p,
+                                                struct expression *left) {
+  TRACE_FN;
+  struct expression *expr = ast_expression_init(EXPR_INFIX);
+  if (!expr) {
+    return NULL;
+  }
+  expr->infix_expr.left = left;
+  expr->infix_expr.op = p->current_token;
+
+  struct OP_POWER precedence =
+      parser_infix_binding_power(p->current_token->type);
+  parser_next_token(p);
+  expr->infix_expr.right = parser_parse_expr_bp(p, precedence.rbp);
+  return expr;
+}
+
+/**
+ * parse postfix expressions
+ * <expression>postfix_operator
+ */
+struct expression *parser_parse_postfix_operator(struct parser *p,
+                                                 struct expression *left) {
+  TRACE_FN;
+  struct expression *expr = ast_expression_init(EXPR_POSTFIX);
+  if (!expr) {
+    return NULL;
+  }
+  expr->postfix_expr.left = left;
+  expr->postfix_expr.op = p->current_token;
+  parser_next_token(p);
+  return expr;
+}
+
+// ========================================================================
+
+/**
+ * parse identifiers -> a, isTrue, etc.
+ */
 struct expression *parser_parse_identifier(struct parser *p) {
+  TRACE_FN;
   struct expression *expr = ast_expression_init(EXPR_IDENTIFIER);
   if (!expr) {
     return NULL;
@@ -334,40 +538,11 @@ struct expression *parser_parse_identifier(struct parser *p) {
   return expr;
 }
 
-// unary_operator<expression> -> -<expression> or !<expression>
-struct expression *parser_parse_unary_operator(struct parser *p) {
-  struct expression *expr = ast_expression_init(EXPR_UNARY);
-  if (!expr) {
-    return NULL;
-  }
-  expr->unary_expr.op = p->current_token;
-  parser_next_token(p); // advance to the right-hand side of the operator
-  expr->unary_expr.right = parser_parse_expression(
-      p, PREFIX); // parse the right-hand side expression
-  if (!expr->unary_expr.right) {
-    ast_expression_free(expr);
-    return NULL;
-  }
-  return expr;
-}
-
-// <expression>binary_operator<expression>
-struct expression *parser_parse_binary_operator(struct parser *p,
-                                                struct expression *left) {
-  struct expression *expr = ast_expression_init(EXPR_BINARY);
-  if (!expr) {
-    return NULL;
-  }
-  expr->binary_expr.left = left;
-  expr->binary_expr.op = p->current_token;
-  struct token_precedence prec =
-      parser_get_token_precedence(p->current_token->type);
-  parser_next_token(p);
-  expr->binary_expr.right = parser_parse_expression(p, prec.rbp);
-  return expr;
-}
-
+/**
+ * parse integer literals -> 10, 100, etc.
+ */
 struct expression *parser_parse_integer_literal(struct parser *p) {
+  TRACE_FN;
   struct expression *expr = ast_expression_init(EXPR_LITERAL);
   if (!expr) {
     return NULL;
@@ -384,7 +559,11 @@ struct expression *parser_parse_integer_literal(struct parser *p) {
   return expr;
 }
 
+/**
+ * parse float-point numbers -> 10.1, 100.1, etc.
+ */
 struct expression *parser_parse_float_literal(struct parser *p) {
+  TRACE_FN;
   struct expression *expr = ast_expression_init(EXPR_LITERAL);
   if (!expr) {
     return NULL;
@@ -401,7 +580,11 @@ struct expression *parser_parse_float_literal(struct parser *p) {
   return expr;
 }
 
+/**
+ * parse string literals -> "s", "string", etc.
+ */
 struct expression *parser_parse_string_literal(struct parser *p) {
+  TRACE_FN;
   struct expression *expr = ast_expression_init(EXPR_LITERAL);
   if (!expr) {
     return NULL;
@@ -422,7 +605,11 @@ struct expression *parser_parse_string_literal(struct parser *p) {
   return expr;
 }
 
+/**
+ * parse boolean literals -> true, false
+ */
 struct expression *parser_parse_boolean_literal(struct parser *p) {
+  TRACE_FN;
   struct expression *expr = ast_expression_init(EXPR_LITERAL);
   if (!expr) {
     return NULL;
