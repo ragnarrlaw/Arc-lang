@@ -31,9 +31,11 @@ void let_statement_test() {
       {"let x := 10 + 2 * 40;", "let x := (10+(2*40));", 1},
       {"let x := -10 + 2 * 40;", "let x := ((-10)+(2*40));", 1},
       {"let x := -10 * 2 * 40;", "let x := (((-10)*2)*40);", 1},
+      {"let x := --10 * 2 * 40;", "let x := (((--10)*2)*40);", 1},
+      {"let x := ++10 * 2 * 40;", "let x := (((++10)*2)*40);", 1},
   };
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 9; i++) {
     printf("Running test #%d: %s\n", i, tests[i].input);
 
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
@@ -62,6 +64,7 @@ void let_statement_test() {
 
     string_t *str = init_string_t(8);
     t_stmt_repr(program->statements[0], str);
+    repr_string_t(str);
 
     assert(program->statement_count == tests[i].statement_count);
 
@@ -73,9 +76,6 @@ void let_statement_test() {
   }
 }
 
-void return_statement_test() {
-}
+void return_statement_test() {}
 
-void expression_statement_test() {
-}
-
+void expression_statement_test() {}
