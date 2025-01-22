@@ -293,6 +293,8 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
     return parser_parse_boolean_literal;
   case BANG:
   case MINUS:
+  case INC:
+  case DEC:
     return parser_parse_unary_operator;
   default:
     return NULL;
