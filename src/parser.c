@@ -11,7 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef TRACE_ON
 #define TRACE_FN printf("%s:%d\n", __func__, __LINE__)
+#else
+#define TRACE_FN
+#endif
 
 struct OP_POWER {
   int_fast8_t lbp;
@@ -111,7 +115,10 @@ void parser_free(struct parser *p) {
  */
 struct program *parser_parse_program(struct parser *p) {
   TRACE_FN;
-  struct program *program = (struct program *)malloc(sizeof(struct program));
+  struct program *program = ast_program_init();
+  if (!program) {
+    return NULL;
+  }
 
   while (!parser_current_token_is(p, END_OF_FILE)) {
     struct statement *stmt = parser_parse_statement(p);
