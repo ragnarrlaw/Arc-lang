@@ -3,6 +3,7 @@
 
 #include "ast.h"
 #include "token.h"
+#include "util_repr.h"
 #include <stdio.h>
 
 static int tests_run = 0;
@@ -33,8 +34,8 @@ static int tests_passed = 0;
     printf("Tests failed: %d\n", tests_run - tests_passed);                    \
   } while (0)
 
-char *t_stmt_repr(struct statement *);
-char *t_expr_repr(struct expression *);
+void t_stmt_repr(struct statement *, string_t *str);
+void t_expr_repr(struct expression *expr, string_t *str);
 void test_repr();
 
 #endif // !TEST_UTIL_H
