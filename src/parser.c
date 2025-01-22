@@ -386,6 +386,7 @@ struct statement *parser_parse_return_statement(struct parser *p) {
     return NULL;
   }
   stmt->return_stmt.value = expr;
+  parser_next_token(p);
   return stmt;
 }
 
