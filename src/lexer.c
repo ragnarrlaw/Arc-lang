@@ -241,6 +241,8 @@ struct token *lexer_operator(struct lexer *l) {
     return token_init(BANG, start, len, line, column);
   } else if (len == 1 && strncmp(start, "-", 1) == 0) {
     return token_init(MINUS, start, len, line, column);
+  } else if (len == 1 && strncmp(start, "%%", 1) == 0) {
+    return token_init(MOD, start, len, line, column);
   } else if (len == 1 && strncmp(start, "*", 1) == 0) {
     return token_init(ASTERISK, start, len, line, column);
   } else if (len == 1 && strncmp(start, "/", 1) == 0) {
@@ -259,6 +261,10 @@ struct token *lexer_operator(struct lexer *l) {
     return token_init(EQ_EQ, start, len, line, column);
   } else if (len == 2 && strncmp(start, "!=", 2) == 0) {
     return token_init(NOT_EQ, start, len, line, column);
+  } else if (len == 2 && strncmp(start, "--", 2) == 0) {
+    return token_init(DEC, start, len, line, column);
+  } else if (len == 2 && strncmp(start, "++", 2) == 0) {
+    return token_init(INC, start, len, line, column);
   } else {
     return lexer_error(l, start, len);
   }
