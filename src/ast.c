@@ -1,8 +1,9 @@
 #include "ast.h"
-#include "token.h"
 #include "util_error.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#define INITIAL_STATEMENTS_CAPACITY 4
 
 struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
   struct statement *s = (struct statement *)malloc(sizeof(struct statement));
@@ -135,8 +136,9 @@ struct program *ast_program_init() {
     ERROR_LOG("error while allocating memory");
     return NULL;
   }
-  p->statement_capacity = 4;
-  p->statements = malloc(sizeof(struct statement *) * p->statement_capacity);
+  p->statement_capacity = INITIAL_STATEMENTS_CAPACITY;
+  p->statements =
+      malloc(sizeof(struct statement *) * INITIAL_STATEMENTS_CAPACITY);
   if (p->statements == NULL) {
     ERROR_LOG("error while allocating memory");
     free(p);
@@ -148,12 +150,12 @@ struct program *ast_program_init() {
 
 void ast_program_push_statement(struct program *p, struct statement *s) {
   if (p == NULL || s == NULL) {
-    ERROR_LOG("program or statement is NULL");
+    ERROR_LOG("program or statement is null");
     return;
   }
 
   if (p->statements == NULL) {
-    p->statement_capacity = 4;
+    p->statement_capacity = INITIAL_STATEMENTS_CAPACITY;
     p->statements = malloc(sizeof(struct statement *) * p->statement_capacity);
     if (p->statements == NULL) {
       ERROR_LOG("error while allocating memory");
@@ -162,13 +164,15 @@ void ast_program_push_statement(struct program *p, struct statement *s) {
     p->statement_count = 0;
   } else {
     if (p->statement_count >= p->statement_capacity) {
-      p->statement_capacity *= 2;
-      p->statements = realloc(p->statements, sizeof(struct statement *) *
-                                                 p->statement_capacity);
-      if (p->statements == NULL) {
+      size_t new_capacity = p->statement_capacity * 2;
+      struct statement **new =
+          realloc(p->statements, sizeof(struct statement *) * new_capacity);
+      if (!new) {
         ERROR_LOG("error while allocating memory");
         return;
       }
+      p->statement_capacity = new_capacity;
+      p->statements = new;
     }
   }
 
@@ -177,9 +181,13 @@ void ast_program_push_statement(struct program *p, struct statement *s) {
 }
 
 void ast_program_free(struct program *p) {
-  for (size_t i = 0; i < p->statement_count; i++) {
-    ast_statement_free(p->statements[i]);
+  if (p) {
+    for (size_t i = 0; i < p->statement_count; i++) {
+      ast_statement_free(p->statements[i]);
+    }
+    free(p->statements);
+    p->statements = NULL;
+    free(p);
+    p = NULL;
   }
-  free(p->statements);
-  free(p);
 }
