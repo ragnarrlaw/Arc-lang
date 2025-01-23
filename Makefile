@@ -29,6 +29,9 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.c | $(BUILD_DIR)
 $(BIN_DIR) $(BUILD_DIR):
 	mkdir -p $@
 
+run: $(TARGET)
+	./$(TARGET)
+
 test: $(TEST_TARGET)
 	$(TEST_TARGET)
 
