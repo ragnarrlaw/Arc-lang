@@ -409,6 +409,8 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
     return NULL;
   }
 
+  stmt->expr_stmt.expr = expr;
+
   if (parser_next_token_is(p, SEMICOLON)) {
     parser_next_token(p);
   }
