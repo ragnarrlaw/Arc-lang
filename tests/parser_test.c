@@ -148,16 +148,28 @@ void expression_statement_test() {
       {"--10 * 2 * 40;", "(((--10)*2)*40);", 1},
       {"++10 * 2 * 40;", "(((++10)*2)*40);", 1},
 
-      // without the terminating semi colon
+      // without the terminating semicolon
       {"5", "5", 1},
       {"5.4", "5.4", 1},
-      {"true", "true", 1},
       {"\"str\";", "str", 1},
       {"10 + 2", "(10+2)", 1},
 
+      // boolean expressions without semicolons
+      {"true", "true", 1},
+      {"false", "false", 1},
+      {"true == true", "(true==true)", 1},
+      {"false == false", "(false==false)", 1},
+      {"false != true", "(false!=true)", 1},
+      {"true != false", "(true!=false)", 1},
+      {"10 == 2", "(10==2)", 1},
+      {"10 == 2", "(10==2)", 1},
+      {"1 > 2 == false", "((1>2)==false)", 1},
+      {"1 > 2 != true", "((1>2)!=true)", 1},
+      {"2 < 5 == true", "((2<5)==true)", 1},
+      {"2 < 5 != false", "((2<5)!=false)", 1},
   };
 
-  for (int i = 0; i < 15; i++) {
+  for (int i = 0; i < 26; i++) {
     printf("Running test #%d: %s\n", i, tests[i].input);
 
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
