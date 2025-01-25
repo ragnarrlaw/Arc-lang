@@ -43,7 +43,7 @@ struct statement *parser_parse_expression_statement(struct parser *);
 // expressions
 struct expression *parser_parse_expr_bp(struct parser *p,
                                         enum OPERATOR_PRECEDENCE min_bp);
-
+struct expression *parser_parse_grouped_expr(struct parser *p);
 struct expression *parser_parse_identifier(struct parser *);
 struct expression *parser_parse_unary_operator(struct parser *);
 /** this is the only function for parsing binary operators infix operators */
@@ -222,7 +222,7 @@ struct OP_POWER parser_prefix_binding_power(enum TOKEN_TYPE type) {
   case DEC:
     return (struct OP_POWER){PREFIX, PREFIX + 1};
   default:
-    return (struct OP_POWER){LOWEST, LOWEST + 1};
+    return (struct OP_POWER){-1, -1};
   }
 }
 
@@ -254,7 +254,7 @@ struct OP_POWER parser_infix_binding_power(enum TOKEN_TYPE type) {
   case ASSIGN:
     return (struct OP_POWER){ASSIGNMENT, ASSIGNMENT - 1};
   default:
-    return (struct OP_POWER){LOWEST, LOWEST + 1};
+    return (struct OP_POWER){-1, -1};
   }
 }
 
@@ -296,6 +296,8 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
   case INC:
   case DEC:
     return parser_parse_unary_operator;
+  case LPAREN:
+    return parser_parse_grouped_expr;
   default:
     return NULL;
   }
@@ -454,26 +456,47 @@ struct expression *parser_parse_expr_bp(struct parser *p,
         return NULL;
       }
       lhs = postfix_fn(p, lhs);
+      continue;
     }
 
     binding_power = parser_infix_binding_power(p->next_token->type);
 
-    if (binding_power.lbp < min_bp) {
-      break;
-    }
+    if (binding_power.lbp > -1) {
+      if (binding_power.lbp < min_bp) {
+        break;
+      }
 
-    parser_next_token(p);
+      parser_next_token(p);
 
-    parser_parse_infix_fn infix_fn =
-        parser_get_infix_fn(p->current_token->type);
-    if (infix_fn == NULL) {
-      parser_add_error(p, "no infix parse function for %s",
-                       token_type_to_str(p->current_token->type));
-      return NULL;
+      parser_parse_infix_fn infix_fn =
+          parser_get_infix_fn(p->current_token->type);
+      if (infix_fn == NULL) {
+        parser_add_error(p, "no infix parse function for %s",
+                         token_type_to_str(p->current_token->type));
+        return NULL;
+      }
+      lhs = infix_fn(p, lhs);
+      continue;
     }
-    lhs = infix_fn(p, lhs);
+    break;
   }
   return lhs;
+}
+
+/**
+ * parse grouped expressions (<expression>)
+ */
+struct expression *parser_parse_grouped_expr(struct parser *p) {
+  parser_next_token(p);
+  struct expression *expr = parser_parse_expr_bp(p, LOWEST);
+  if (expr == NULL) {
+    return NULL;
+  }
+  if (!parser_expect_next_token(p, RPAREN)) {
+    free(expr);
+    return NULL;
+  }
+  return expr;
 }
 
 /**
