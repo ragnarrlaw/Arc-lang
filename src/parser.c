@@ -39,6 +39,7 @@ bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE);
 struct statement *parser_parse_let_statement(struct parser *);
 struct statement *parser_parse_return_statement(struct parser *);
 struct statement *parser_parse_expression_statement(struct parser *);
+struct block_statement *parser_parse_block_statement(struct parser *);
 
 // expressions
 struct expression *parser_parse_expr_bp(struct parser *p,
@@ -298,6 +299,8 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
     return parser_parse_unary_operator;
   case LPAREN:
     return parser_parse_grouped_expr;
+  case IF:
+    return parser_parse_if_expression;
   default:
     return NULL;
   }
@@ -493,7 +496,7 @@ struct expression *parser_parse_grouped_expr(struct parser *p) {
     return NULL;
   }
   if (!parser_expect_next_token(p, RPAREN)) {
-    free(expr);
+    ast_expression_free(expr);
     return NULL;
   }
   return expr;
@@ -653,4 +656,75 @@ struct expression *parser_parse_boolean_literal(struct parser *p) {
   expr->literal.literal_type = LITERAL_BOOL;
   expr->literal.value.bool_value = p->current_token->type == TRUE;
   return expr;
+}
+
+/**
+ * parse if expressions
+ * if (<condition>) { <consequence> }
+ *                or
+ * if (<condition>) { <consequence> } else { <alternative> }
+ */
+struct expression *parser_parse_if_expression(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_CONDITIONAL);
+  if (NULL) {
+    return NULL;
+  }
+  expr->conditional.token = p->current_token;
+  parser_next_token(p);
+  struct expression *condition = parser_parse_expr_bp(p, LOWEST);
+  if (!condition) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  expr->conditional.condition = condition;
+  if (!parser_expect_next_token(p, LBRACE)) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  struct block_statement *stmt = parser_parse_block_statement(p);
+  if (!stmt) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  expr->conditional.consequence = stmt;
+
+  parser_next_token(p);
+  if (parser_current_token_is(p, ELSE)) {
+    parser_next_token(p);
+    if (!parser_current_token_is(p, LBRACE)) {
+      ast_expression_free(expr);
+      return NULL;
+    }
+    struct block_statement *alternative = parser_parse_block_statement(p);
+    if (!alternative) {
+      ast_expression_free(expr);
+      return NULL;
+    }
+    expr->conditional.alternative = alternative;
+  }
+  return expr;
+}
+
+/**
+ * parse block statements
+ * {<statements>} or {<expression>}
+ */
+struct block_statement *parser_parse_block_statement(struct parser *p) {
+  parser_next_token(p);
+  struct block_statement *b_stmt = ast_block_statement_init();
+  if (!b_stmt) {
+    return NULL;
+  }
+  for (;;) {
+    if (parser_current_token_is(p, RBRACE) ||
+        parser_current_token_is(p, END_OF_FILE))
+      break;
+
+    struct statement *stmt = parser_parse_statement(p);
+    if (stmt) {
+      ast_block_statements_push_stmt(b_stmt, stmt);
+    }
+    parser_next_token(p);
+  }
+  return b_stmt;
 }
