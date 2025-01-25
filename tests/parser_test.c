@@ -18,8 +18,10 @@ void parser_run_all_tests() {
   let_statement_test();
   return_statement_test();
   expression_statement_test();
+  grouped_expression_test();
 }
 
+#define LET_STATEMENT_TESTS 10
 void let_statement_test() {
   const struct test_comp tests[] = {
       {"let x := 5;", "let x := 5;", 1},
@@ -34,7 +36,7 @@ void let_statement_test() {
       {"let x := ++10 * 2 * 40;", "let x := (((++10)*2)*40);", 1},
   };
 
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < LET_STATEMENT_TESTS; i++) {
     printf("Running test #%d: %s\n", i, tests[i].input);
 
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
@@ -77,6 +79,7 @@ void let_statement_test() {
   }
 }
 
+#define RETURN_STATEMENT_TESTS 10
 void return_statement_test() {
   const struct test_comp tests[] = {
       {"return 5;", "return 5;", 1},
@@ -91,7 +94,7 @@ void return_statement_test() {
       {"return ++10 * 2 * 40;", "return (((++10)*2)*40);", 1},
   };
 
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < LET_STATEMENT_TESTS; i++) {
     printf("Running test #%d: %s\n", i, tests[i].input);
 
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
@@ -134,6 +137,7 @@ void return_statement_test() {
   }
 }
 
+#define EXPRESSIONS_TESTS 26
 void expression_statement_test() {
   const struct test_comp tests[] = {
       // with the terminating semi colon
@@ -169,7 +173,59 @@ void expression_statement_test() {
       {"2 < 5 != false", "((2<5)!=false)", 1},
   };
 
-  for (int i = 0; i < 26; i++) {
+  for (int i = 0; i < EXPRESSIONS_TESTS; i++) {
+    printf("Running test #%d: %s\n", i, tests[i].input);
+
+    struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
+    if (!l) {
+      printf("Error initializing lexer\n");
+      continue;
+    }
+
+    struct parser *p = parser_init(l);
+    if (!p) {
+      printf("Error initializing parser\n");
+      lexer_free(l);
+      continue;
+    }
+
+    struct program *program = parser_parse_program(p);
+    if (!program) {
+      printf("Error parsing program\n");
+      parser_free(p);
+      continue;
+    }
+
+    if (parser_has_errors(p)) {
+      parser_print_errors(p);
+    }
+
+    string_t *str = init_string_t(8);
+    t_stmt_repr(program->statements[0], str);
+    repr_string_t(str);
+
+    assert(!parser_has_errors(p));
+
+    assert(program->statement_count == tests[i].statement_count);
+
+    assert(!string_t_cmp(str, (char *)tests[i].expected));
+
+    ast_program_free(program);
+    parser_free(p);
+    free(str);
+  }
+}
+
+#define GROUPED_EXPRESSIONS_TESTS 3
+
+void grouped_expression_test() {
+  const struct test_comp tests[] = {
+      {"(1 + 3) * 2", "((1+3)*2)", 1},
+      {"(((0)))", "0", 1},
+      {"(0 + 1) > 2 != true", "(((0+1)>2)!=true)", 1},
+  };
+
+  for (int i = 0; i < GROUPED_EXPRESSIONS_TESTS; i++) {
     printf("Running test #%d: %s\n", i, tests[i].input);
 
     struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
