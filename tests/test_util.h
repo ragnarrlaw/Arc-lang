@@ -35,6 +35,7 @@ static int tests_passed = 0;
   } while (0)
 
 void t_stmt_repr(struct statement *, string_t *str);
+void t_block_stmt_repr(struct block_statement *b_stmt, string_t *str);
 void t_expr_repr(struct expression *expr, string_t *str);
 void test_repr();
 

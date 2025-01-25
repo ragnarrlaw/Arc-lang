@@ -2,9 +2,8 @@
 #include "ast.h"
 #include "token.h"
 #include "util_repr.h"
+#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 void t_stmt_repr(struct statement *stmt, string_t *str) {
   switch (stmt->type) {
@@ -27,6 +26,14 @@ void t_stmt_repr(struct statement *stmt, string_t *str) {
   case STMT_EXPRESSION: {
     t_expr_repr(stmt->expr_stmt.expr, str);
   }; break;
+  }
+}
+
+void t_block_stmt_repr(struct block_statement *b_stmt, string_t *str) {
+  if (b_stmt) {
+    for (size_t i = 0; i < b_stmt->statement_count; i++) {
+      t_stmt_repr(b_stmt->statements[i], str);
+    }
   }
 }
 
@@ -83,6 +90,21 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     string_t_ncat(str, (char *)expr->postfix_expr.op->literal,
                   expr->postfix_expr.op->literal_len);
     string_t_ncat(str, ")", 1);
+  }; break;
+  case EXPR_CONDITIONAL: {
+    string_t_ncat(str, (char *)expr->conditional.token->literal,
+                  expr->conditional.token->literal_len);
+    string_t_ncat(str, "(", 1);
+    t_expr_repr(expr->conditional.condition, str);
+    string_t_ncat(str, ") ", 1);
+    string_t_ncat(str, "{", 1);
+    t_block_stmt_repr(expr->conditional.consequence, str);
+    string_t_ncat(str, "}", 1);
+    if (expr->conditional.alternative) {
+      string_t_ncat(str, " else {", 7);
+      t_block_stmt_repr(expr->conditional.alternative, str);
+      string_t_ncat(str, "}", 1);
+    }
   }; break;
   }
 }
