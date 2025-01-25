@@ -701,6 +701,7 @@ struct expression *parser_parse_if_expression(struct parser *p) {
       return NULL;
     }
     expr->conditional.alternative = alternative;
+    parser_next_token(p);
   }
   return expr;
 }
