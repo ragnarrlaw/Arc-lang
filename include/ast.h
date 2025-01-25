@@ -17,7 +17,12 @@ enum LITERAL_TYPE {
   types that require meta data will have literal struts associated with them
  */
 
+struct expression;
+struct string_literal;
+union literal_value;
 struct literal;
+struct condition_expr;
+struct block_statement;
 
 /**
  NOTE: at the time of initializing a string literal
@@ -43,6 +48,26 @@ struct literal {
   union literal_value value;
 };
 
+/**
+ * conditional statements follow the following format
+ * if (<condition>) <consequence> else <alternative>
+ */
+struct conditional_expr {
+  struct token *token;
+  struct expression *condition;
+  struct block_statement *consequence;
+  struct block_statement *alternative;
+};
+
+/**
+ * statments that appear inside of the block { <statements> }
+ */
+struct block_statement {
+  struct token *token; // open curly bracket {
+  struct statement **statements;
+  size_t statement_count;
+};
+
 enum EXPRESSION_TYPE {
   EXPR_LITERAL,    // 5; or 5
   EXPR_IDENTIFIER, // identifier cases -> a; or a
@@ -50,6 +75,7 @@ enum EXPRESSION_TYPE {
                  * - are prefix operators */
   EXPR_INFIX,   // binary operators -> a + b;
   EXPR_POSTFIX, // unary operators -> ++, --
+  EXPR_CONDITIONAL, // if-else expression
 };
 
 struct expression {
@@ -76,6 +102,8 @@ struct expression {
       struct expression *left;
       struct token *op;
     } postfix_expr;
+
+    struct conditional_expr conditional;
   };
 };
 
@@ -125,5 +153,10 @@ void ast_expression_free(struct expression *);
 
 struct literal *ast_literal_init(enum LITERAL_TYPE);
 void ast_literal_free(struct literal *literal);
+
+struct block_statement *ast_block_statement_init();
+void ast_block_statements_push_stmt(struct block_statement *,
+                                          struct statement *);
+void ast_block_statement_free(struct block_statement *);
 
 #endif // !AST_H

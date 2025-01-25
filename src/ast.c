@@ -75,6 +75,12 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
     expr->postfix_expr.left = NULL;
     expr->postfix_expr.op = NULL;
   }; break;
+  case EXPR_CONDITIONAL: {
+      expr->conditional.token = NULL;
+      expr->conditional.condition = NULL;
+      expr->conditional.consequence = NULL;
+      expr->conditional.alternative = NULL;
+  }; break;
   }
   return expr;
 }
@@ -96,6 +102,11 @@ void ast_expression_free(struct expression *e) {
     }; break;
     case EXPR_POSTFIX: {
       ast_expression_free(e->postfix_expr.left);
+    }; break;
+    case EXPR_CONDITIONAL: {
+      ast_expression_free(e->conditional.condition);
+      ast_block_statement_free(e->conditional.consequence);
+      ast_block_statement_free(e->conditional.alternative);
     }; break;
     }
     free(e);
@@ -128,6 +139,56 @@ void ast_literal_free(struct literal *literal) {
   /** NOTE: not needed since the struct of expression not holding to heap
    * allocated memory */
   // free(literal);
+}
+
+struct block_statement *ast_block_statement_init() {
+  struct block_statement *b_s = malloc(sizeof(struct block_statement));
+  if (!b_s) {
+    ERROR_LOG("error while allocating memory");
+    return NULL;
+  }
+  b_s->token = NULL;
+  b_s->statements = NULL;
+  b_s->statement_count = 0;
+  return b_s;
+}
+
+void ast_block_statement_free(struct block_statement *b_s) {
+  if (b_s) {
+    if (b_s->statements) {
+      for (size_t i = 0; i < b_s->statement_count; i++) {
+        free(b_s->statements[i]);
+      }
+      free(b_s->statements);
+      b_s->statements = NULL;
+    }
+  };
+  free(b_s);
+  b_s = NULL;
+}
+
+void ast_block_statements_push_stmt(struct block_statement *b_s,
+                                          struct statement *s) {
+  if (!b_s && !s) {
+    return;
+  }
+  if (b_s->statements == NULL) {
+    struct statement **stmts =
+        malloc(sizeof(struct statement *) * INITIAL_STATEMENTS_CAPACITY);
+    b_s->statements = stmts;
+    b_s->statement_count = 0;
+  } else {
+    size_t new_capacity = b_s->statement_count * 2;
+    struct statement **new_stmts =
+        realloc(b_s->statements, sizeof(struct statement *) * new_capacity);
+    if (!new_stmts) {
+      ERROR_LOG("error allocating memory\n");
+      return;
+    }
+    b_s->statements = new_stmts;
+  }
+  b_s->statements[b_s->statement_count] = s;
+  b_s->statement_count++;
 }
 
 struct program *ast_program_init() {
