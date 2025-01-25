@@ -19,6 +19,7 @@ void parser_run_all_tests() {
   return_statement_test();
   expression_statement_test();
   grouped_expression_test();
+  conditional_expression_test();
 }
 
 #define LET_STATEMENT_TESTS 10
@@ -254,6 +255,57 @@ void grouped_expression_test() {
 
     string_t *str = init_string_t(8);
     t_stmt_repr(program->statements[0], str);
+    repr_string_t(str);
+
+    assert(!parser_has_errors(p));
+
+    assert(program->statement_count == tests[i].statement_count);
+
+    assert(!string_t_cmp(str, (char *)tests[i].expected));
+
+    ast_program_free(program);
+    parser_free(p);
+    free(str);
+  }
+}
+
+#define CONDITIONALS_TESTS 2
+void conditional_expression_test() {
+  const struct test_comp tests[] = {
+      {"if 1 < 2 { x }", "if((1<2)){x}", 1},
+      {"if 1 < 2 { x } else { y }", "if((1<2)){x} else {y}", 1},
+  };
+
+  for (int i = 0; i < CONDITIONALS_TESTS; i++) {
+    printf("Running test #%d: %s\n", i, tests[i].input);
+
+    struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
+    if (!l) {
+      printf("Error initializing lexer\n");
+      continue;
+    }
+
+    struct parser *p = parser_init(l);
+    if (!p) {
+      printf("Error initializing parser\n");
+      lexer_free(l);
+      continue;
+    }
+
+    struct program *program = parser_parse_program(p);
+    if (!program) {
+      printf("Error parsing program\n");
+      parser_free(p);
+      continue;
+    }
+
+    if (parser_has_errors(p)) {
+      parser_print_errors(p);
+    }
+
+    string_t *str = init_string_t(8);
+    t_stmt_repr(program->statements[0], str);
+
     repr_string_t(str);
 
     assert(!parser_has_errors(p));

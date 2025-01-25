@@ -10,5 +10,6 @@ void return_statement_test();
 void expression_statement_test();
 void expressions_test();
 void grouped_expression_test();
+void conditional_expression_test();
 
 #endif // !PARSER_TEST_H
