@@ -3,7 +3,6 @@
 #include "test_util.h"
 #include "token.h"
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 void lexer_run_all_tests() {
