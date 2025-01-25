@@ -269,11 +269,17 @@ void grouped_expression_test() {
   }
 }
 
-#define CONDITIONALS_TESTS 2
+#define CONDITIONALS_TESTS 5
 void conditional_expression_test() {
   const struct test_comp tests[] = {
       {"if 1 < 2 { x }", "if((1<2)){x}", 1},
       {"if 1 < 2 { x } else { y }", "if((1<2)){x} else {y}", 1},
+      {"if 1 < 2 { let x := 10; let y := 20; x + y } else { 20 }",
+       "if((1<2)){let x := 10;let y := 20;(x+y)} else {20}", 1},
+
+      {"if 1 < 2 { true } else { false }", "if((1<2)){true} else {false}", 1},
+      {"if 1 < 2 { true != false } else { false == false }",
+       "if((1<2)){(true!=false)} else {(false==false)}", 1},
   };
 
   for (int i = 0; i < CONDITIONALS_TESTS; i++) {
