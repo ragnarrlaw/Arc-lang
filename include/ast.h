@@ -103,8 +103,9 @@ enum EXPRESSION_TYPE {
                  * - are prefix operators */
   EXPR_INFIX,   // binary operators -> a + b;
   EXPR_POSTFIX, // unary operators -> ++, --
-  EXPR_CONDITIONAL, // if-else expression
-  EXPR_FUNCTION,    // fn -> functions
+  EXPR_CONDITIONAL,   // if-else expression
+  EXPR_FUNCTION,      // fn -> functions
+  EXPR_FUNCTION_CALL, // fn -> function call
 };
 
 struct expression {
@@ -135,6 +136,16 @@ struct expression {
     struct conditional_expr conditional;
 
     struct function_literal function;
+
+    struct {
+      struct token *token;
+// clang-format off
+      struct expression *function; // can be  a function literal or an identifier
+// clang-format on
+      struct expression **arguments;
+      size_t arg_count;
+      size_t arg_size;
+    } function_call;
   };
 };
 
