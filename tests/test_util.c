@@ -26,6 +26,24 @@ void t_stmt_repr(struct statement *stmt, string_t *str) {
   case STMT_EXPRESSION: {
     t_expr_repr(stmt->expr_stmt.expr, str);
   }; break;
+  case STMT_FUNCTION_DEF: {
+    string_t_ncat(str, (char *)stmt->fn_def_stmt.token->literal,
+                  stmt->fn_def_stmt.token->literal_len);
+    string_t_ncat(str, " ", 1);
+    string_t_ncat(str, (char *)stmt->fn_def_stmt.name->literal,
+                  stmt->fn_def_stmt.name->literal_len);
+    string_t_ncat(str, " ", 1);
+    string_t_ncat(str, "(", 1);
+    for (size_t i = 0; i < stmt->fn_def_stmt.params_count; i++) {
+      string_t_ncat(str, (char *)stmt->fn_def_stmt.params[i]->token->literal,
+                    stmt->fn_def_stmt.params[i]->token->literal_len);
+      string_t_ncat(str, ",", 1);
+    }
+    string_t_ncat(str, ") ", 2);
+    string_t_ncat(str, "{", 1);
+    t_block_stmt_repr(stmt->fn_def_stmt.body, str);
+    string_t_ncat(str, "}", 1);
+  }; break;
   }
 }
 
@@ -96,7 +114,7 @@ void t_expr_repr(struct expression *expr, string_t *str) {
                   expr->conditional.token->literal_len);
     string_t_ncat(str, "(", 1);
     t_expr_repr(expr->conditional.condition, str);
-    string_t_ncat(str, ") ", 1);
+    string_t_ncat(str, ")", 1);
     string_t_ncat(str, "{", 1);
     t_block_stmt_repr(expr->conditional.consequence, str);
     string_t_ncat(str, "}", 1);
@@ -105,6 +123,20 @@ void t_expr_repr(struct expression *expr, string_t *str) {
       t_block_stmt_repr(expr->conditional.alternative, str);
       string_t_ncat(str, "}", 1);
     }
+  }; break;
+  case EXPR_FUNCTION: {
+    string_t_ncat(str, (char *)expr->function.token->literal,
+                  expr->function.token->literal_len);
+    string_t_ncat(str, "(", 1);
+    for (size_t i = 0; i < expr->function.param_count; i++) {
+      string_t_ncat(str, (char *)expr->function.parameters[i]->token->literal,
+                    expr->function.parameters[i]->token->literal_len);
+      string_t_ncat(str, ",", 1);
+    }
+    string_t_ncat(str, ")", 1);
+    string_t_ncat(str, "{", 1);
+    t_block_stmt_repr(expr->function.body, str);
+    string_t_ncat(str, "}", 1);
   }; break;
   }
 }
