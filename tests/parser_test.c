@@ -5,7 +5,6 @@
 #include "util_repr.h"
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 struct test_comp {
@@ -22,6 +21,7 @@ void parser_run_all_tests() {
   conditional_expression_test();
   function_expression_test();
   function_statement_test();
+  function_call_expression_test();
 }
 
 #define LET_STATEMENT_TESTS 10
@@ -78,7 +78,7 @@ void let_statement_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
@@ -136,11 +136,11 @@ void return_statement_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
-#define EXPRESSIONS_TESTS 28
+#define EXPRESSIONS_TESTS 30
 void expression_statement_test() {
   const struct test_comp tests[] = {
       // with the terminating semi colon
@@ -155,6 +155,8 @@ void expression_statement_test() {
       {"-10 * 2 * 40;", "(((-10)*2)*40);", 1},
       {"--10 * 2 * 40;", "(((--10)*2)*40);", 1},
       {"++10 * 2 * 40;", "(((++10)*2)*40);", 1},
+      {"5++;", "(5++);", 1},
+      {"5--;", "(5--);", 1},
 
       // without the terminating semicolon
       {"5", "5", 1},
@@ -217,7 +219,7 @@ void expression_statement_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
@@ -269,7 +271,7 @@ void grouped_expression_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
@@ -326,7 +328,7 @@ void conditional_expression_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
@@ -376,7 +378,7 @@ void function_expression_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
   }
 }
 
@@ -430,6 +432,58 @@ void function_statement_test() {
 
     ast_program_free(program);
     parser_free(p);
-    free(str);
+    free_string_t(str);
+  }
+}
+
+#define FUNCTION_CALL_EXPRESSION_TESTS 2
+void function_call_expression_test() {
+  const struct test_comp tests[] = {
+      {"add(10, 90)", "(add(10,90,))", 1},
+      // {"add(10, --90)", "(add(10,(--90),))", 1},
+      {"add(10, 90++)", "(add(10,(90++),))", 1},
+  };
+
+  for (int i = 0; i < FUNCTION_CALL_EXPRESSION_TESTS; i++) {
+    printf("Running test #%d: %s\n", i, tests[i].input);
+
+    struct lexer *l = lexer_init(tests[i].input, strlen(tests[i].input));
+    if (!l) {
+      printf("Error initializing lexer\n");
+      continue;
+    }
+
+    struct parser *p = parser_init(l);
+    if (!p) {
+      printf("Error initializing parser\n");
+      lexer_free(l);
+      continue;
+    }
+
+    struct program *program = parser_parse_program(p);
+    if (!program) {
+      printf("Error parsing program\n");
+      parser_free(p);
+      continue;
+    }
+
+    if (parser_has_errors(p)) {
+      parser_print_errors(p);
+    }
+
+    string_t *str = init_string_t(8);
+    t_stmt_repr(program->statements[0], str);
+
+    repr_string_t(str);
+
+    assert(!parser_has_errors(p));
+
+    assert(program->statement_count == tests[i].statement_count);
+
+    assert(!string_t_cmp(str, (char *)tests[i].expected));
+
+    ast_program_free(program);
+    parser_free(p);
+    free_string_t(str);
   }
 }
