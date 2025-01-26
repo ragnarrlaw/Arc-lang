@@ -226,8 +226,8 @@ struct token *lexer_operator(struct lexer *l) {
   int column = l->column;
   int line = l->line;
   const char *start = l->position;
-  while (ispunct(l->current_char) && !isspace(l->current_char) &&
-         l->current_char != 0) {
+  while (len < 2 && ispunct(l->current_char) && l->current_char != ';' &&
+         !isspace(l->current_char) && l->current_char != 0) {
     len++;
     lexer_advance(l);
   }
