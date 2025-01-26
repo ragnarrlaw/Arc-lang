@@ -53,14 +53,14 @@ void ast_statement_free(struct statement *s) {
       ast_expression_free(s->expr_stmt.expr);
       break;
     case STMT_FUNCTION_DEF: {
-        if (s->fn_def_stmt.params) {
-          for (size_t i = 0; i < s->fn_def_stmt.params_count; i++) {
-            free(s->fn_def_stmt.params[i]);
-            s->fn_def_stmt.params[i] = NULL;
-          }
-          free(s->fn_def_stmt.params);
+      if (s->fn_def_stmt.params) {
+        for (size_t i = 0; i < s->fn_def_stmt.params_count; i++) {
+          free(s->fn_def_stmt.params[i]);
+          s->fn_def_stmt.params[i] = NULL;
         }
-        ast_block_statement_free(s->fn_def_stmt.body);
+        free(s->fn_def_stmt.params);
+      }
+      ast_block_statement_free(s->fn_def_stmt.body);
     }; break;
     }
     free(s);
@@ -111,6 +111,11 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
     expr->function.param_capacity = 0;
     expr->function.body = NULL;
   }; break;
+  case EXPR_FUNCTION_CALL: {
+    expr->function_call.token = NULL;
+    expr->function_call.function = NULL;
+    expr->function_call.arguments = NULL;
+  }; break;
   }
   return expr;
 }
@@ -142,6 +147,16 @@ void ast_expression_free(struct expression *e) {
       ast_block_statement_free(e->function.body);
       for (size_t i = 0; i < e->function.param_count; i++)
         ast_identifier_free(e->function.parameters[i]);
+      free(e->function.parameters);
+      e->function.parameters = NULL;
+    }; break;
+    case EXPR_FUNCTION_CALL: {
+      ast_expression_free(e->function_call.function);
+      for (size_t i = 0; i < e->function_call.arg_count; i++) {
+        ast_expression_free(e->function_call.arguments[i]);
+      }
+      free(e->function_call.arguments);
+      e->function_call.arguments = NULL;
     }; break;
     }
     free(e);
@@ -209,7 +224,7 @@ void ast_block_statement_free(struct block_statement *b_s) {
   if (b_s) {
     if (b_s->statements) {
       for (size_t i = 0; i < b_s->statement_count; i++) {
-        free(b_s->statements[i]);
+        ast_statement_free(b_s->statements[i]);
       }
       free(b_s->statements);
       b_s->statements = NULL;
