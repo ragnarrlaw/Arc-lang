@@ -17,6 +17,22 @@
 #define TRACE_FN
 #endif
 
+/**
+ * used to allocate an initial amount of parameters
+ * while parsing fn literals
+ */
+#define DEFAULT_FUNCTION_PARAMETER_COUNT 4
+
+/**
+ * param_list_t is used to keep track of the parameters
+ * of a function definition
+ */
+typedef struct param_list {
+  struct identifier **params;
+  size_t count;
+  size_t capacity;
+} param_list_t;
+
 struct OP_POWER {
   int_fast8_t lbp;
   int_fast8_t rbp;
@@ -39,12 +55,13 @@ bool parser_expect_next_token(struct parser *p, enum TOKEN_TYPE);
 struct statement *parser_parse_let_statement(struct parser *);
 struct statement *parser_parse_return_statement(struct parser *);
 struct statement *parser_parse_expression_statement(struct parser *);
+struct statement *parser_parse_fn_statement(struct parser *);
 struct block_statement *parser_parse_block_statement(struct parser *);
 
 // expressions
 struct expression *parser_parse_expr_bp(struct parser *p,
                                         enum OPERATOR_PRECEDENCE min_bp);
-struct expression *parser_parse_grouped_expr(struct parser *p);
+struct expression *parser_parse_grouped_expr(struct parser *);
 struct expression *parser_parse_identifier(struct parser *);
 struct expression *parser_parse_unary_operator(struct parser *);
 /** this is the only function for parsing binary operators infix operators */
@@ -55,12 +72,13 @@ struct expression *parser_parse_postfix_operator(struct parser *,
 struct expression *parser_parse_integer_literal(struct parser *);
 struct expression *parser_parse_float_literal(struct parser *);
 struct expression *parser_parse_string_literal(struct parser *);
-struct expression *parser_parse_boolean_literal(struct parser *p);
+struct expression *parser_parse_boolean_literal(struct parser *);
 
 struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
-struct expression *parser_parse_fn_def_expression(struct parser *);
+struct expression *parser_parse_fn_expression(struct parser *);
+param_list_t parser_parse_fn_parameters(struct parser *);
 
 // prefix_fn, infix_fn, and postfix_fn -> for literals
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type);
@@ -301,6 +319,8 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
     return parser_parse_grouped_expr;
   case IF:
     return parser_parse_if_expression;
+  case FUNCTION:
+    return parser_parse_fn_expression;
   default:
     return NULL;
   }
@@ -335,6 +355,8 @@ struct statement *parser_parse_statement(struct parser *p) {
     return parser_parse_let_statement(p);
   case RETURN:
     return parser_parse_return_statement(p);
+  case FUNCTION:
+    return parser_parse_fn_statement(p);
   default:
     return parser_parse_expression_statement(p);
   }
@@ -419,6 +441,60 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
   if (parser_next_token_is(p, SEMICOLON)) {
     parser_next_token(p);
   }
+
+  return stmt;
+}
+
+struct statement *parser_parse_fn_statement(struct parser *p) {
+  TRACE_FN
+  struct statement *stmt = ast_statement_init(STMT_FUNCTION_DEF);
+  if (stmt == NULL) {
+    return NULL;
+  }
+  stmt->fn_def_stmt.token = p->current_token;
+  if (!parser_expect_next_token(p, IDENTIFIER)) {
+    parser_add_error(
+        p, "Error at line: %d column: %d, expected function name after fn\n",
+        p->current_token->line_number, p->current_token->col_number);
+    ast_statement_free(stmt);
+    return NULL;
+  }
+  stmt->fn_def_stmt.name = p->current_token;
+  if (!parser_expect_next_token(p, LPAREN)) {
+    parser_add_error(p,
+                     "Error at line: %d column: %d, expected ( in the "
+                     "definition after function name\n",
+                     p->current_token->line_number,
+                     p->current_token->col_number);
+    ast_statement_free(stmt);
+    return NULL;
+  }
+  param_list_t params = parser_parse_fn_parameters(p);
+  if (!params.params) {
+    ast_statement_free(stmt);
+    return NULL;
+  }
+  stmt->fn_def_stmt.params = params.params;
+  stmt->fn_def_stmt.params_count = params.count;
+  stmt->fn_def_stmt.params_capacity = params.capacity;
+
+  if (!parser_expect_next_token(p, LBRACE)) {
+    parser_add_error(p,
+                     "Error at line :%d column: %d, expected { at the start of "
+                     "the function body\n",
+                     p->current_token->line_number,
+                     p->current_token->col_number);
+    ast_statement_free(stmt);
+    return NULL;
+  }
+
+  struct block_statement *blk_stmt = parser_parse_block_statement(p);
+  if (!blk_stmt) {
+    ast_statement_free(stmt);
+    return NULL;
+  }
+
+  stmt->fn_def_stmt.body = blk_stmt;
 
   return stmt;
 }
@@ -711,6 +787,11 @@ struct expression *parser_parse_if_expression(struct parser *p) {
  * {<statements>} or {<expression>}
  */
 struct block_statement *parser_parse_block_statement(struct parser *p) {
+  /**
+   * at the time of calling this function, current token should be a LBRACE ({)
+   * function exits after moving to the RBRACE(}) token or after meeting an
+   * early END_OF_FILE
+   */
   parser_next_token(p);
   struct block_statement *b_stmt = ast_block_statement_init();
   if (!b_stmt) {
@@ -728,4 +809,124 @@ struct block_statement *parser_parse_block_statement(struct parser *p) {
     parser_next_token(p);
   }
   return b_stmt;
+}
+
+/**
+ * parse function literals
+ * fn <parameters> { <body> }
+ * <parameters> -> (parameter0, parameter1, parameter2, ...)
+ */
+struct expression *parser_parse_fn_expression(struct parser *p) {
+  struct expression *expr = ast_expression_init(EXPR_FUNCTION);
+  if (!expr) {
+    return NULL;
+  }
+  expr->function.token = p->current_token;
+  if (!parser_expect_next_token(p, LPAREN)) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  param_list_t params = parser_parse_fn_parameters(p);
+
+  if (!params.params) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+
+  expr->function.parameters = params.params;
+  expr->function.param_count = params.count;
+  expr->function.param_capacity = params.capacity;
+
+  if (!parser_expect_next_token(p, LBRACE)) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+
+  struct block_statement *blk_stmt = parser_parse_block_statement(p);
+  if (!blk_stmt) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  expr->function.body = blk_stmt;
+
+  return expr;
+}
+
+/**
+ * helper function used for parsing function parameters
+ * <parameters> -> (parameter0, parameter1, parameter2, ...)
+ */
+param_list_t parser_parse_fn_parameters(struct parser *p) {
+  param_list_t params = {NULL, 0, 0};
+  struct identifier **i =
+      malloc(sizeof(struct identifier *) * DEFAULT_FUNCTION_PARAMETER_COUNT);
+  if (!i) {
+    return params;
+  }
+  params.params = i;
+  params.count = 0;
+  params.capacity = DEFAULT_FUNCTION_PARAMETER_COUNT;
+
+  if (parser_next_token_is(p, RPAREN)) {
+    parser_next_token(p);
+    return params;
+  }
+
+  parser_next_token(p);
+
+  struct identifier *ident = malloc(sizeof(struct identifier));
+  if (!ident) {
+    ERROR_LOG("error while allocating memory\n");
+    free(params.params);
+    params.params = NULL;
+    return params;
+  }
+  ident->token = p->current_token;
+  params.params[params.count++] = ident;
+
+  for (; parser_next_token_is(p, COMMA);) {
+    parser_next_token(p);
+    parser_next_token(p);
+    ident = malloc(sizeof(struct identifier));
+    if (!ident) {
+      ERROR_LOG("error while allocating memory\n");
+      for (size_t i = 0; i < params.count; i++) {
+        free(params.params[i]);
+      }
+      free(params.params);
+      params.params = NULL;
+      return params;
+    }
+    if (params.count >= params.capacity) {
+      size_t new_capacity = params.count * 2;
+      struct identifier **new_identifiers =
+          realloc(params.params, sizeof(struct identifier *) * new_capacity);
+      if (!new_identifiers) {
+        ERROR_LOG("error while allocating memory\n");
+        for (size_t i = 0; i < params.count; i++) {
+          free(params.params[i]);
+        }
+        free(params.params);
+        params.params = NULL;
+        params.capacity = 0;
+        params.count = 0;
+        return params;
+      }
+      params.params = new_identifiers;
+      params.capacity = new_capacity;
+    }
+    ident->token = p->current_token;
+    params.params[params.count++] = ident;
+  }
+  if (!parser_expect_next_token(p, RPAREN)) {
+    for (size_t i = 0; i < params.count; i++) {
+      free(params.params[i]);
+    }
+    free(params.params);
+    params.params = NULL;
+    params.capacity = 0;
+    params.count = 0;
+    return params;
+  }
+  return params;
 }
