@@ -138,5 +138,17 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     t_block_stmt_repr(expr->function.body, str);
     string_t_ncat(str, "}", 1);
   }; break;
+  case EXPR_FUNCTION_CALL: {
+    string_t_ncat(str, (char *)expr->function_call.token->literal,
+                  expr->function_call.token->literal_len);
+    t_expr_repr(expr->function_call.function, str);
+    string_t_ncat(str, "(", 1);
+    for (size_t i = 0; i < expr->function_call.arg_count; i++) {
+      t_expr_repr(expr->function_call.arguments[i], str);
+      string_t_ncat(str, ",", 1);
+    }
+    string_t_ncat(str, ")", 1);
+    string_t_ncat(str, ")", 1);
+  }; break;
   }
 }
