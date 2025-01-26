@@ -11,5 +11,7 @@ void expression_statement_test();
 void expressions_test();
 void grouped_expression_test();
 void conditional_expression_test();
+void function_expression_test();
+void function_statement_test();
 
 #endif // !PARSER_TEST_H
