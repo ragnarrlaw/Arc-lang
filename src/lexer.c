@@ -103,9 +103,9 @@ struct token *lexer_next_token(struct lexer *l) {
     t = lexer_string_literal(l);
   } else if (l->current_char == ':' || l->current_char == '+' ||
              l->current_char == '-' || l->current_char == '/' ||
-             l->current_char == '=' || l->current_char == '>' ||
-             l->current_char == '!' || l->current_char == '<' ||
-             l->current_char == '*') {
+             l->current_char == '%' || l->current_char == '=' ||
+             l->current_char == '>' || l->current_char == '!' ||
+             l->current_char == '<' || l->current_char == '*') {
     l->current_state = STATE_OPERATOR;
     t = lexer_operator(l);
   } else if (ispunct(l->current_char)) {
@@ -241,7 +241,7 @@ struct token *lexer_operator(struct lexer *l) {
     return token_init(BANG, start, len, line, column);
   } else if (len == 1 && strncmp(start, "-", 1) == 0) {
     return token_init(MINUS, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "%%", 1) == 0) {
+  } else if (len == 1 && strncmp(start, "%", 1) == 0) {
     return token_init(MOD, start, len, line, column);
   } else if (len == 1 && strncmp(start, "*", 1) == 0) {
     return token_init(ASTERISK, start, len, line, column);
