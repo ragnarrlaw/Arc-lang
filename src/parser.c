@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+// #define TRACE_ON 1
+
 #ifdef TRACE_ON
 #define TRACE_FN printf("%s:%d\n", __func__, __LINE__)
 #else
@@ -32,6 +34,16 @@ typedef struct param_list {
   size_t count;
   size_t capacity;
 } param_list_t;
+
+/**
+ * args_list_t is used to keep track of the list arguments
+ * given to a function call
+ */
+typedef struct args_list {
+  struct expression **args;
+  size_t count;
+  size_t capacity;
+} args_list_t;
 
 struct OP_POWER {
   int_fast8_t lbp;
@@ -78,7 +90,9 @@ struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
 struct expression *parser_parse_while_expression(struct parser *);
 struct expression *parser_parse_fn_expression(struct parser *);
+struct expression *parser_parse_fn_call(struct parser *, struct expression *);
 param_list_t parser_parse_fn_parameters(struct parser *);
+args_list_t parser_parse_fn_call_args(struct parser *);
 
 // prefix_fn, infix_fn, and postfix_fn -> for literals
 parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type);
@@ -272,6 +286,8 @@ struct OP_POWER parser_infix_binding_power(enum TOKEN_TYPE type) {
     return (struct OP_POWER){LOGICAL_OR, LOGICAL_OR + 1};
   case ASSIGN:
     return (struct OP_POWER){ASSIGNMENT, ASSIGNMENT - 1};
+  case LPAREN:
+    return (struct OP_POWER){POSTFIX, POSTFIX + 1};
   default:
     return (struct OP_POWER){-1, -1};
   }
@@ -331,7 +347,12 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
  */
 parser_parse_infix_fn parser_get_infix_fn(enum TOKEN_TYPE type) {
   TRACE_FN;
-  return parser_parse_binary_operator;
+  switch (type) {
+  case LPAREN:
+    return parser_parse_fn_call;
+  default:
+    return parser_parse_binary_operator;
+  }
 }
 
 /**
@@ -446,7 +467,7 @@ struct statement *parser_parse_expression_statement(struct parser *p) {
 }
 
 struct statement *parser_parse_fn_statement(struct parser *p) {
-  TRACE_FN
+  TRACE_FN;
   struct statement *stmt = ast_statement_init(STMT_FUNCTION_DEF);
   if (stmt == NULL) {
     return NULL;
@@ -514,7 +535,6 @@ struct expression *parser_parse_expr_bp(struct parser *p,
   }
 
   struct expression *lhs = prefix_fn(p);
-
   for (;;) {
     if (parser_next_token_is(p, SEMICOLON) ||
         parser_next_token_is(p, END_OF_FILE))
@@ -527,6 +547,7 @@ struct expression *parser_parse_expr_bp(struct parser *p,
         break;
       }
       parser_next_token(p);
+
       parser_parse_postfix_fn postfix_fn =
           parser_get_postfix_fn(p->current_token->type);
       if (postfix_fn == NULL) {
@@ -633,7 +654,6 @@ struct expression *parser_parse_postfix_operator(struct parser *p,
   }
   expr->postfix_expr.left = left;
   expr->postfix_expr.op = p->current_token;
-  parser_next_token(p);
   return expr;
 }
 
@@ -929,4 +949,99 @@ param_list_t parser_parse_fn_parameters(struct parser *p) {
     return params;
   }
   return params;
+}
+
+/**
+ * parse function calls
+ * <expression>(<comma separated expression>)
+ * e.g. add(1, 2), add(1, multiply(10, 40)), fn(a,b){a+b}(10, 20) and
+ * higher_order(fn(a,b){a+b})
+ */
+struct expression *parser_parse_fn_call(struct parser *p,
+                                        struct expression *function) {
+  struct expression *expr = ast_expression_init(EXPR_FUNCTION_CALL);
+  if (!expr) {
+    return NULL;
+  }
+  expr->function_call.token = p->current_token;
+  expr->function_call.function = function;
+  args_list_t args = parser_parse_fn_call_args(p);
+  if (!args.args) {
+    ast_expression_free(expr);
+    return NULL;
+  }
+  expr->function_call.arguments = args.args;
+  expr->function_call.arg_count = args.count;
+  expr->function_call.arg_size = args.capacity;
+  return expr;
+}
+
+/**
+ * parse function call arguments
+ * (<comma separated expressions>)
+ */
+args_list_t parser_parse_fn_call_args(struct parser *p) {
+  args_list_t args = {NULL, 0, 0};
+  struct expression **a =
+      malloc(sizeof(struct expression *) * DEFAULT_FUNCTION_PARAMETER_COUNT);
+  if (!a) {
+    ERROR_LOG("error while allocating memory\n");
+    return args;
+  }
+  args.args = a;
+  args.capacity = DEFAULT_FUNCTION_PARAMETER_COUNT;
+  if (parser_next_token_is(p, RPAREN)) {
+    parser_next_token(p);
+    return args;
+  }
+  parser_next_token(p);
+  struct expression *expr = parser_parse_expr_bp(p, LOWEST);
+  if (!expr) {
+    free(a);
+    args.args = NULL;
+    return args;
+  }
+  args.args[args.count++] = expr;
+  for (; parser_next_token_is(p, COMMA);) {
+    parser_next_token(p);
+    parser_next_token(p);
+    expr = parser_parse_expr_bp(p, LOWEST);
+    if (!expr) {
+      for (size_t i = 0; i < args.count; i++) {
+        ast_expression_free(args.args[i]);
+      }
+      free(args.args);
+      args.args = NULL;
+      return args;
+    } else if (args.count >= args.capacity) {
+      size_t new_capacity = args.count * 2;
+      struct expression **new_args =
+          realloc(args.args, sizeof(struct expression *) * new_capacity);
+      if (!new_args) {
+        ERROR_LOG("error while allocating memory\n");
+        for (size_t i = 0; i < args.count; i++) {
+          ast_expression_free(args.args[i]);
+        }
+        free(args.args);
+        args.args = NULL;
+        args.count = 0;
+        args.capacity = 0;
+        return args;
+      }
+      args.capacity = new_capacity;
+      args.args = new_args;
+    }
+    args.args[args.count++] = expr;
+  }
+  if (!parser_expect_next_token(p, RPAREN)) {
+    for (size_t i = 0; i < args.count; i++) {
+      ast_expression_free(args.args[i]);
+    }
+    free(args.args);
+    args.args = NULL;
+    args.count = 0;
+    args.capacity = 0;
+    return args;
+  }
+  return args;
 }
