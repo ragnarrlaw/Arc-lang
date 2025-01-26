@@ -1,5 +1,6 @@
 #include "ast.h"
 #include "util_error.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,6 +8,10 @@
 
 struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
   struct statement *s = (struct statement *)malloc(sizeof(struct statement));
+  if (!s) {
+    ERROR_LOG("error while allocating memory\n");
+    return NULL;
+  }
   s->type = type;
   switch (s->type) {
   case STMT_LET: {
@@ -22,7 +27,15 @@ struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
   case STMT_EXPRESSION: {
     s->expr_stmt.expr = NULL;
     s->expr_stmt.token = NULL;
-  }
+  }; break;
+  case STMT_FUNCTION_DEF: {
+    s->fn_def_stmt.token = NULL;
+    s->fn_def_stmt.name = NULL;
+    s->fn_def_stmt.params = NULL;
+    s->fn_def_stmt.params_count = 0;
+    s->fn_def_stmt.params_capacity = 0;
+    s->fn_def_stmt.body = NULL;
+  }; break;
   }
   return s;
 }
@@ -39,6 +52,16 @@ void ast_statement_free(struct statement *s) {
     case STMT_EXPRESSION:
       ast_expression_free(s->expr_stmt.expr);
       break;
+    case STMT_FUNCTION_DEF: {
+        if (s->fn_def_stmt.params) {
+          for (size_t i = 0; i < s->fn_def_stmt.params_count; i++) {
+            free(s->fn_def_stmt.params[i]);
+            s->fn_def_stmt.params[i] = NULL;
+          }
+          free(s->fn_def_stmt.params);
+        }
+        ast_block_statement_free(s->fn_def_stmt.body);
+    }; break;
     }
     free(s);
   }
@@ -49,7 +72,7 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
   struct expression *expr =
       (struct expression *)malloc(sizeof(struct expression));
   if (expr == NULL) {
-    ERROR_LOG("error while allocating memory");
+    ERROR_LOG("error while allocating memory\n");
     return NULL;
   }
   expr->type = e;
@@ -76,10 +99,17 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
     expr->postfix_expr.op = NULL;
   }; break;
   case EXPR_CONDITIONAL: {
-      expr->conditional.token = NULL;
-      expr->conditional.condition = NULL;
-      expr->conditional.consequence = NULL;
-      expr->conditional.alternative = NULL;
+    expr->conditional.token = NULL;
+    expr->conditional.condition = NULL;
+    expr->conditional.consequence = NULL;
+    expr->conditional.alternative = NULL;
+  }; break;
+  case EXPR_FUNCTION: {
+    expr->function.token = NULL;
+    expr->function.parameters = NULL;
+    expr->function.param_count = 0;
+    expr->function.param_capacity = 0;
+    expr->function.body = NULL;
   }; break;
   }
   return expr;
@@ -108,6 +138,11 @@ void ast_expression_free(struct expression *e) {
       ast_block_statement_free(e->conditional.consequence);
       ast_block_statement_free(e->conditional.alternative);
     }; break;
+    case EXPR_FUNCTION: {
+      ast_block_statement_free(e->function.body);
+      for (size_t i = 0; i < e->function.param_count; i++)
+        ast_identifier_free(e->function.parameters[i]);
+    }; break;
     }
     free(e);
   }
@@ -117,7 +152,7 @@ void ast_expression_free(struct expression *e) {
 struct literal *ast_literal_init(enum LITERAL_TYPE type) {
   struct literal *l = (struct literal *)malloc(sizeof(struct literal));
   if (l == NULL) {
-    ERROR_LOG("error while allocating memory");
+    ERROR_LOG("error while allocating memory\n");
     return NULL;
   }
   l->literal_type = type;
@@ -141,15 +176,32 @@ void ast_literal_free(struct literal *literal) {
   // free(literal);
 }
 
+struct identifier *ast_identifier_init() {
+  struct identifier *ident = malloc(sizeof(struct identifier));
+  if (!ident) {
+    return NULL;
+  }
+  ident->token = NULL;
+  return ident;
+}
+
+void ast_identifier_free(struct identifier *ident) {
+  if (ident) {
+    free(ident);
+  }
+  ident = NULL;
+}
+
 struct block_statement *ast_block_statement_init() {
   struct block_statement *b_s = malloc(sizeof(struct block_statement));
   if (!b_s) {
-    ERROR_LOG("error while allocating memory");
+    ERROR_LOG("error while allocating memory\n");
     return NULL;
   }
   b_s->token = NULL;
   b_s->statements = NULL;
   b_s->statement_count = 0;
+  b_s->statement_capacity = 0;
   return b_s;
 }
 
@@ -168,16 +220,21 @@ void ast_block_statement_free(struct block_statement *b_s) {
 }
 
 void ast_block_statements_push_stmt(struct block_statement *b_s,
-                                          struct statement *s) {
+                                    struct statement *s) {
   if (!b_s && !s) {
     return;
   }
   if (b_s->statements == NULL) {
     struct statement **stmts =
         malloc(sizeof(struct statement *) * INITIAL_STATEMENTS_CAPACITY);
+    if (!stmts) {
+      ERROR_LOG("error allocating memory\n");
+      return;
+    }
     b_s->statements = stmts;
     b_s->statement_count = 0;
-  } else {
+    b_s->statement_capacity = INITIAL_STATEMENTS_CAPACITY;
+  } else if (b_s->statement_count >= b_s->statement_capacity) {
     size_t new_capacity = b_s->statement_count * 2;
     struct statement **new_stmts =
         realloc(b_s->statements, sizeof(struct statement *) * new_capacity);
@@ -185,8 +242,10 @@ void ast_block_statements_push_stmt(struct block_statement *b_s,
       ERROR_LOG("error allocating memory\n");
       return;
     }
+    b_s->statement_capacity = new_capacity;
     b_s->statements = new_stmts;
   }
+
   b_s->statements[b_s->statement_count] = s;
   b_s->statement_count++;
 }
@@ -194,14 +253,14 @@ void ast_block_statements_push_stmt(struct block_statement *b_s,
 struct program *ast_program_init() {
   struct program *p = (struct program *)malloc(sizeof(struct program));
   if (p == NULL) {
-    ERROR_LOG("error while allocating memory");
+    ERROR_LOG("error while allocating memory\n");
     return NULL;
   }
   p->statement_capacity = INITIAL_STATEMENTS_CAPACITY;
   p->statements =
       malloc(sizeof(struct statement *) * INITIAL_STATEMENTS_CAPACITY);
   if (p->statements == NULL) {
-    ERROR_LOG("error while allocating memory");
+    ERROR_LOG("error while allocating memory\n");
     free(p);
     return NULL;
   }
@@ -211,7 +270,6 @@ struct program *ast_program_init() {
 
 void ast_program_push_statement(struct program *p, struct statement *s) {
   if (p == NULL || s == NULL) {
-    ERROR_LOG("program or statement is null");
     return;
   }
 
@@ -219,7 +277,7 @@ void ast_program_push_statement(struct program *p, struct statement *s) {
     p->statement_capacity = INITIAL_STATEMENTS_CAPACITY;
     p->statements = malloc(sizeof(struct statement *) * p->statement_capacity);
     if (p->statements == NULL) {
-      ERROR_LOG("error while allocating memory");
+      ERROR_LOG("error while allocating memory\n");
       return;
     }
     p->statement_count = 0;
@@ -229,7 +287,7 @@ void ast_program_push_statement(struct program *p, struct statement *s) {
       struct statement **new =
           realloc(p->statements, sizeof(struct statement *) * new_capacity);
       if (!new) {
-        ERROR_LOG("error while allocating memory");
+        ERROR_LOG("error while allocating memory\n");
         return;
       }
       p->statement_capacity = new_capacity;

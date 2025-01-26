@@ -23,17 +23,24 @@ union literal_value;
 struct literal;
 struct condition_expr;
 struct block_statement;
+struct function_literal;
+struct identifier;
+struct function_def_stmt;
 
 /**
- NOTE: at the time of initializing a string literal
-       duplicate the string literal and make a new copy
-       as the lexer it not storing the string but pointers.
+ *NOTE: at the time of initializing a string literal
+ *    duplicate the string literal and make a new copy
+ *    as the lexer it not storing the string but pointers.
  */
 struct string_literal {
   char *value;
   size_t length;
 };
 
+/**
+ * literal_value holds the values of a literal
+ * literal values can be of type int, float, string, char, or bool
+ */
 union literal_value {
   long int_value;
   float float_value;
@@ -42,10 +49,22 @@ union literal_value {
   struct string_literal *string_literal;
 };
 
+/**
+ * literals represent the data related to different data
+ * types provided by the language
+ */
 struct literal {
   enum LITERAL_TYPE literal_type;
   struct token *token;
   union literal_value value;
+};
+
+/**
+ * identifier represents an identifier in the language
+ * each identifier can be associated with a type
+ */
+struct identifier {
+  struct token *token;
 };
 
 /**
@@ -60,12 +79,21 @@ struct conditional_expr {
 };
 
 /**
- * statments that appear inside of the block { <statements> }
+ * statements that appear inside of the block { <statements> }
  */
 struct block_statement {
-  struct token *token; // open curly bracket {
+  struct token *token; // LBRACE -> {
   struct statement **statements;
   size_t statement_count;
+  size_t statement_capacity;
+};
+
+struct function_literal {
+  struct token *token; // FUNCTION -> fn
+  struct identifier **parameters;
+  size_t param_count;
+  size_t param_capacity;
+  struct block_statement *body;
 };
 
 enum EXPRESSION_TYPE {
@@ -76,6 +104,7 @@ enum EXPRESSION_TYPE {
   EXPR_INFIX,   // binary operators -> a + b;
   EXPR_POSTFIX, // unary operators -> ++, --
   EXPR_CONDITIONAL, // if-else expression
+  EXPR_FUNCTION,    // fn -> functions
 };
 
 struct expression {
@@ -104,6 +133,8 @@ struct expression {
     } postfix_expr;
 
     struct conditional_expr conditional;
+
+    struct function_literal function;
   };
 };
 
@@ -111,6 +142,7 @@ enum STATEMENT_TYPE {
   STMT_LET,
   STMT_RETURN,
   STMT_EXPRESSION,
+  STMT_FUNCTION_DEF,
 };
 
 struct statement {
@@ -132,6 +164,15 @@ struct statement {
       struct token *token;
       struct expression *expr;
     } expr_stmt;
+
+    struct {
+      struct token *token; // fn token
+      struct token *name;  // name token
+      struct identifier **params;
+      size_t params_count;
+      size_t params_capacity;
+      struct block_statement *body;
+    } fn_def_stmt;
   };
 };
 
@@ -156,7 +197,10 @@ void ast_literal_free(struct literal *literal);
 
 struct block_statement *ast_block_statement_init();
 void ast_block_statements_push_stmt(struct block_statement *,
-                                          struct statement *);
+                                    struct statement *);
 void ast_block_statement_free(struct block_statement *);
+
+struct identifier *ast_identifier_init();
+void ast_identifier_free(struct identifier *);
 
 #endif // !AST_H
