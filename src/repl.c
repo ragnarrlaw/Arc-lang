@@ -1,6 +1,7 @@
 #include "repl.h"
 #include "lexer.h"
-#include "token.h"
+#include "parser.h"
+#include "util_repr.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -82,11 +83,34 @@ bool ends_with_semicolon(const char *buffer, size_t size) {
 
 void evaluate(const char *buffer, size_t size) { 
     struct lexer *l = lexer_init(buffer, size);
-    for (struct token *t = lexer_next_token(l); t->type != END_OF_FILE; t = lexer_next_token(l)) {
-        token_repr(t);
-        token_free(t);
+    if (!l) {
+      printf("Error initializing lexer\n");
     }
-    lexer_free(l);
+
+    struct parser *p = parser_init(l);
+    if (!p) {
+      printf("Error initializing parser\n");
+      lexer_free(l);
+    }
+
+    struct program *program = parser_parse_program(p);
+    if (!program) {
+      printf("Error parsing program\n");
+      parser_free(p);
+    }
+
+    if (parser_has_errors(p)) {
+      parser_print_errors(p);
+    }
+
+    string_t *str = init_string_t(8);
+    t_stmt_repr(program->statements[0], str);
+
+    repr_string_t(str);
+
+    ast_program_free(program);
+    parser_free(p);
+    free_string_t(str);
 }
 
 void repl() {
@@ -139,3 +163,4 @@ void repl() {
 void shutdown() { 
     // TODO: free resources && perform cleanups
 }
+
