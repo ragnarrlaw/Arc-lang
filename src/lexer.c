@@ -44,6 +44,7 @@ void token_pool_push(struct token_pool *pool, struct token *t) {
     return;
   }
   node->t = t;
+  node->next = NULL;
   if (!pool->head) {
     pool->head = node;
   } else {
@@ -54,17 +55,19 @@ void token_pool_push(struct token_pool *pool, struct token *t) {
 }
 
 void token_pool_free(struct token_pool *pool) {
-  if (!pool) {
-    pool = NULL;
+  if (pool) {
+    for (struct token_node *node = pool->head; node;) {
+      struct token_node *tmp = node;
+      node = tmp->next;
+      if (tmp) {
+        if (tmp->t) {
+          token_free(tmp->t);
+        }
+        free(tmp);
+      }
+    }
+    free(pool);
   }
-  struct token_node *node = pool->head;
-  while (node) {
-    struct token_node *tmp = node;
-    node = node->next;
-    token_free(tmp->t);
-    free(tmp);
-  }
-  free(pool);
   pool = NULL;
 }
 
