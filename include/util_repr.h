@@ -1,6 +1,9 @@
 #ifndef REPR_H
 #define REPR_H
 
+#include "ast.h"
+#include "token.h"
+#include "util_error.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -88,5 +91,20 @@ size_t cap_string_t(struct string_t *);
  * print a representation of the content of the string_t
  */
 void repr_string_t(struct string_t *);
+
+/**
+ * print a representation of a statement
+ */
+void t_stmt_repr(struct statement *, string_t *str);
+
+/**
+ * print a representation of a block statement
+ */
+void t_block_stmt_repr(struct block_statement *b_stmt, string_t *str);
+
+/**
+ * print a representation of an expression
+ */
+void t_expr_repr(struct expression *expr, string_t *str);
 
 #endif // !REPR_H
