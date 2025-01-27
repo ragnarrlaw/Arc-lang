@@ -1,7 +1,6 @@
 #include "parser_test.h"
 #include "ast.h"
 #include "parser.h"
-#include "test_util.h"
 #include "util_repr.h"
 #include <assert.h>
 #include <stdio.h>
