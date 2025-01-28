@@ -82,7 +82,7 @@ struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
 void token_free(struct token *t) {
   if (t != NULL) {
     switch (t->type) {
-    case CHAR: {
+    case STRING_LITERAL: {
       free((char *)t->literal);
     };
     default:
