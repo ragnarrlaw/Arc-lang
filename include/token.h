@@ -16,6 +16,7 @@ enum TOKEN_TYPE {
   BOOL,           // bool
   TRUE,           // true
   FALSE,          // false
+  CHAR,           // char
 
   ASSIGN,     // :=
   FUNCTION_R, // ->
