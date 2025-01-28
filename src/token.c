@@ -18,6 +18,7 @@ static const char *token_types[] = {
     "bool",           // BOOL
     "true",           // TRUE
     "false",          // FALSE
+    "char",           // CHAR
 
     "assign",     // ASSIGN
     "function_r", // FUNCTION_R
@@ -80,7 +81,13 @@ struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
 
 void token_free(struct token *t) {
   if (t != NULL) {
-    free(t);
+    switch (t->type) {
+    case CHAR: {
+      free((char *)t->literal);
+    };
+    default:
+      free(t);
+    };
   }
   t = NULL;
 }
