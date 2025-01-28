@@ -15,6 +15,7 @@ void lexer_transition(struct lexer *l);
 struct token *lexer_indent_or_key(struct lexer *l);
 struct token *lexer_numerical(struct lexer *l);
 struct token *lexer_string_literal(struct lexer *l);
+struct token *lexer_char_literal(struct lexer *l);
 struct token *lexer_operator(struct lexer *l);
 struct token *lexer_punctuation(struct lexer *l);
 struct token *lexer_comment(struct lexer *l);
@@ -104,6 +105,9 @@ struct token *lexer_next_token(struct lexer *l) {
   } else if (l->current_char == '"') {
     l->current_state = STATE_STRING_LITERAL;
     t = lexer_string_literal(l);
+  } else if (l->current_char == '\'') {
+    l->current_state = STATE_CHAR_LITERAL;
+    t = lexer_char_literal(l);
   } else if (l->current_char == ':' || l->current_char == '+' ||
              l->current_char == '-' || l->current_char == '/' ||
              l->current_char == '%' || l->current_char == '=' ||
@@ -202,25 +206,76 @@ struct token *lexer_numerical(struct lexer *l) {
 }
 
 struct token *lexer_string_literal(struct lexer *l) {
-  int len = 0;
   int column = l->column;
   int line = l->line;
 
-  lexer_advance(l); // Skip opening quote
-  const char *start = l->position;
+  lexer_advance(l);
+  char *buffer = malloc(strlen(l->position) + 1);
+  if (!buffer) {
+    return lexer_error(l, l->position, 0);
+  }
+
+  char *p = buffer;
+
   while (l->current_char != '"' && l->current_char != 0) {
     if (l->current_char == '\\') {
-      lexer_advance(l); // Skip escape character
+      lexer_advance(l);
+      switch (l->current_char) {
+      case 'n':
+        *p++ = '\n';
+        break;
+      case 't':
+        *p++ = '\t';
+        break;
+      case '\\':
+        *p++ = '\\';
+        break;
+      case '"':
+        *p++ = '"';
+        break;
+      default:
+        *p++ = l->current_char;
+        break;
+      }
+    } else {
+      *p++ = l->current_char;
     }
+    lexer_advance(l);
+  }
+
+  *p = '\0';
+
+  if (l->current_char == '"') {
+    lexer_advance(l);
+    return token_init(STRING_LITERAL, buffer, p - buffer, line, column);
+  }
+
+  free(buffer);
+  return lexer_error(l, l->position, 0);
+}
+
+struct token *lexer_char_literal(struct lexer *l) {
+  int len = 0;
+  int column = l->column;
+  int line = l->line;
+  const char *start = l->position;
+  lexer_advance(l); // skip opening quote
+  if (l->current_char == '\\') {
+    len++;            // include escape character
+    lexer_advance(l); // advance past escape character
+    if (l->current_char != 0) {
+      len++;            // include escaped character
+      lexer_advance(l); // advance past escaped character
+    }
+  } else {
     len++;
     lexer_advance(l);
   }
 
-  if (l->current_char == '"') {
-    lexer_advance(l); // Skip closing quote
-    return token_init(STRING_LITERAL, start, len, line, column);
+  if (l->current_char == '\'') {
+    lexer_advance(l); // skip closing quote
+    return token_init(CHAR, start, len, line, column);
   }
-
   return lexer_error(l, start, len);
 }
 
