@@ -85,6 +85,7 @@ struct expression *parser_parse_integer_literal(struct parser *);
 struct expression *parser_parse_float_literal(struct parser *);
 struct expression *parser_parse_string_literal(struct parser *);
 struct expression *parser_parse_boolean_literal(struct parser *);
+struct expression *parser_parse_char_literal(struct parser *p);
 
 struct expression *parser_parse_if_expression(struct parser *);
 struct expression *parser_parse_for_expression(struct parser *);
@@ -326,6 +327,8 @@ parser_parse_prefix_fn parser_get_prefix_fn(enum TOKEN_TYPE type) {
   case TRUE:
   case FALSE:
     return parser_parse_boolean_literal;
+  case CHAR:
+    return parser_parse_char_literal;
   case BANG:
   case MINUS:
   case INC:
@@ -708,7 +711,7 @@ struct expression *parser_parse_float_literal(struct parser *p) {
   memcpy(buffer, p->current_token->literal, p->current_token->literal_len);
   buffer[p->current_token->literal_len] = '\0';
 
-  float value = strtof(buffer, NULL);
+  double value = strtold(buffer, NULL);
   expr->literal.value.float_value = value;
 
   return expr;
@@ -751,6 +754,21 @@ struct expression *parser_parse_boolean_literal(struct parser *p) {
   expr->literal.token = p->current_token;
   expr->literal.literal_type = LITERAL_BOOL;
   expr->literal.value.bool_value = p->current_token->type == TRUE;
+  return expr;
+}
+
+/**
+ * parse characters (runes) -> 'a', 'b', etc.
+ */
+struct expression *parser_parse_char_literal(struct parser *p) {
+  TRACE_FN;
+  struct expression *expr = ast_expression_init(EXPR_LITERAL);
+  if (!expr) {
+    return NULL;
+  }
+  expr->literal.token = p->current_token;
+  expr->literal.literal_type = LITERAL_CHAR;
+  expr->literal.value.char_value = *(p->current_token->literal + p->current_token->literal_len);
   return expr;
 }
 
