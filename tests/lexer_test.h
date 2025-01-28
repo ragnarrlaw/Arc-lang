@@ -19,5 +19,6 @@ void test_if_else_statement();
 void test_complex_expression();
 void test_operators();
 void test_program();
+void test_unary_operator_chains();
 
 #endif // !LEXER_TEST_H

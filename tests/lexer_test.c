@@ -20,6 +20,7 @@ void lexer_run_all_tests() {
   RUN_TEST(test_complex_expression);
   RUN_TEST(test_operators);
   RUN_TEST(test_program);
+  RUN_TEST(test_unary_operator_chains);
 }
 
 static const char *single_line_function = "fn add(x, y) -> x + y;";
@@ -1260,6 +1261,44 @@ void test_operators() {
     printf("expected: %d, got: %d\n", NOT_EQ, t->type);
     token_repr(t);
     assert(t->type == NOT_EQ);
+  }
+  t = lexer_next_token(l);
+  if (t->type != END_OF_FILE) {
+    printf("expected: %d, got: %d\n", END_OF_FILE, t->type);
+    token_repr(t);
+    assert(t->type == END_OF_FILE);
+  }
+  lexer_free(l);
+}
+
+static const char *unary_operator_chains = "!!!5";
+
+void test_unary_operator_chains() {
+  struct lexer *l =
+      lexer_init(unary_operator_chains, strlen(unary_operator_chains));
+  struct token *t = lexer_next_token(l);
+  if (t->type != BANG) {
+    printf("expected: %d, got: %d\n", BANG, t->type);
+    token_repr(t);
+    assert(t->type == BANG);
+  }
+  t = lexer_next_token(l);
+  if (t->type != BANG) {
+    printf("expected: %d, got: %d\n", BANG, t->type);
+    token_repr(t);
+    assert(t->type == BANG);
+  }
+  t = lexer_next_token(l);
+  if (t->type != BANG) {
+    printf("expected: %d, got: %d\n", BANG, t->type);
+    token_repr(t);
+    assert(t->type == BANG);
+  }
+  t = lexer_next_token(l);
+  if (t->type != INT) {
+    printf("expected: %d, got: %d\n", INT, t->type);
+    token_repr(t);
+    assert(t->type == INT);
   }
   t = lexer_next_token(l);
   if (t->type != END_OF_FILE) {
