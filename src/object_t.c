@@ -38,7 +38,7 @@ struct obj_t *object_t_init(enum OBJECT_TYPE type) {
 }
 
 void object_t_free(struct obj_t *v) {
-  if (v) {
+  if (v && v->type != OBJECT_BOOL && v->type != OBJECT_SENTINEL) {
     switch (v->type) {
     case OBJECT_STRING:
       if (v->string_value.data)
