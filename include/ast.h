@@ -4,6 +4,7 @@
 #include "token.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 enum LITERAL_TYPE {
   LITERAL_INT,
@@ -42,8 +43,8 @@ struct string_literal {
  * literal values can be of type int, float, string, char, or bool
  */
 union literal_value {
-  long int_value;
-  float float_value;
+  int int_value;
+  double float_value;
   char char_value;
   bool bool_value;
   struct string_literal *string_literal;
@@ -139,9 +140,9 @@ struct expression {
 
     struct {
       struct token *token;
-// clang-format off
+      // clang-format off
       struct expression *function; // can be  a function literal or an identifier
-// clang-format on
+      // clang-format on
       struct expression **arguments;
       size_t arg_count;
       size_t arg_size;
