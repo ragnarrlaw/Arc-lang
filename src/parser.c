@@ -768,7 +768,8 @@ struct expression *parser_parse_char_literal(struct parser *p) {
   }
   expr->literal.token = p->current_token;
   expr->literal.literal_type = LITERAL_CHAR;
-  expr->literal.value.char_value = *(p->current_token->literal + p->current_token->literal_len);
+  expr->literal.value.char_value =
+      *(p->current_token->literal + p->current_token->literal_len);
   return expr;
 }
 
