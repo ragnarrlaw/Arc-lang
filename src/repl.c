@@ -1,5 +1,7 @@
 #include "repl.h"
+#include "evaluator.h"
 #include "lexer.h"
+#include "object_t.h"
 #include "parser.h"
 #include "util_repr.h"
 #include <ctype.h>
@@ -104,12 +106,14 @@ void evaluate(const char *buffer, size_t size) {
     }
 
     string_t *str = init_string_t(8);
-    t_stmt_repr(program->statements[0], str);
 
+    struct obj_t *result = evaluate_program(program);
+    t_object_repr(result, str);
     repr_string_t(str);
 
     ast_program_free(program);
     parser_free(p);
+    object_t_free(result);
     free_string_t(str);
 }
 
