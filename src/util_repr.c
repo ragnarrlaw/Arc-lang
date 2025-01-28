@@ -1,6 +1,8 @@
 #include "util_repr.h"
+#include "object_t.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -218,7 +220,7 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     switch (expr->literal.literal_type) {
     case LITERAL_INT: {
       char buffer[expr->literal.token->literal_len + 1];
-      snprintf(buffer, sizeof(buffer), "%ld", expr->literal.value.int_value);
+      snprintf(buffer, sizeof(buffer), "%d", expr->literal.value.int_value);
       string_t_cat(str, buffer);
     }; break;
     case LITERAL_FLOAT: {
@@ -306,6 +308,54 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     }
     string_t_ncat(str, ")", 1);
     string_t_ncat(str, ")", 1);
+  }; break;
+  }
+}
+
+void t_object_repr(struct obj_t *object, string_t *str) {
+  if (!object) {
+    return;
+  }
+  switch (object->type) {
+  case OBJECT_INT: {
+    size_t number_len = snprintf(NULL, 0, "%d", object->int_value);
+    char buffer[number_len + 1];
+    snprintf(buffer, sizeof(buffer), "%d", object->int_value);
+    string_t_cat(str, "<integer>(");
+    string_t_cat(str, buffer);
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_DOUBLE: {
+    size_t number_len = snprintf(NULL, 0, "%lf", object->double_value);
+    char buffer[number_len + 1];
+    snprintf(buffer, sizeof(buffer), "%f", object->double_value);
+    string_t_cat(str, "<float>(");
+    string_t_cat(str, buffer);
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_BOOL: {
+    string_t_cat(str, "<boolean>(");
+    if (object->bool_value) {
+      string_t_cat(str, "true");
+    } else {
+      string_t_cat(str, "false");
+    }
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_STRING: {
+    string_t_cat(str, "<string>(");
+    string_t_ncat(str, object->string_value.data, object->string_value.length);
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_SENTINEL: {
+    string_t_cat(str, "<sentinel value>(");
+    string_t_cat(str, "null");
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_CHAR: {
+    string_t_cat(str, "<char>(");
+    string_t_cat_char(str, object->rune_value);
+    string_t_cat(str, ")");
   }; break;
   }
 }
