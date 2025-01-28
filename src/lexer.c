@@ -6,20 +6,46 @@
 #include <stdlib.h>
 #include <string.h>
 
+// initializes a token pool.
 struct token_pool *token_pool_init();
+
+// pushes a token into the token pool.
 void token_pool_push(struct token_pool *, struct token *);
+
+// frees the memory allocated for the token pool.
 void token_pool_free(struct token_pool *);
 
+// advances the lexer to the next character.
 void lexer_advance(struct lexer *l);
+
+// transitions the lexer state.
 void lexer_transition(struct lexer *l);
+
+// processes an identifier or keyword token.
 struct token *lexer_indent_or_key(struct lexer *l);
+
+// processes a numerical token.
 struct token *lexer_numerical(struct lexer *l);
+
+// processes a string literal token.
 struct token *lexer_string_literal(struct lexer *l);
+
+// processes a character literal token.
 struct token *lexer_char_literal(struct lexer *l);
+
+// processes an operator token.
 struct token *lexer_operator(struct lexer *l);
+
+// processes a punctuation token.
 struct token *lexer_punctuation(struct lexer *l);
+
+// processes a comment token.
 struct token *lexer_comment(struct lexer *l);
+
+// generates an error token.
 struct token *lexer_error(struct lexer *l, const char *start, int len);
+
+// skips whitespace characters.
 void lexer_whitespace(struct lexer *l);
 
 struct token_pool *token_pool_init() {
@@ -280,53 +306,81 @@ struct token *lexer_char_literal(struct lexer *l) {
 }
 
 struct token *lexer_operator(struct lexer *l) {
-  int len = 0;
   int column = l->column;
   int line = l->line;
   const char *start = l->position;
-  while (len < 2 && ispunct(l->current_char) && l->current_char != ';' &&
-         !isspace(l->current_char) && l->current_char != 0) {
-    len++;
+  char current_char = l->current_char;
+
+  if (ispunct(current_char) && current_char != ';' && !isspace(current_char) &&
+      current_char != 0) {
+    char next_char = lexer_peek(l);
+    char two_char_op[3] = {current_char, next_char, '\0'};
+
+    if (strncmp(two_char_op, ":=", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(ASSIGN, start, 2, line, column);
+    } else if (strncmp(two_char_op, "->", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(FUNCTION_R, start, 2, line, column);
+    } else if (strncmp(two_char_op, "<=", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(LT_EQ, start, 2, line, column);
+    } else if (strncmp(two_char_op, ">=", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(GT_EQ, start, 2, line, column);
+    } else if (strncmp(two_char_op, "==", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(EQ_EQ, start, 2, line, column);
+    } else if (strncmp(two_char_op, "!=", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(NOT_EQ, start, 2, line, column);
+    } else if (strncmp(two_char_op, "--", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(DEC, start, 2, line, column);
+    } else if (strncmp(two_char_op, "++", 2) == 0) {
+      lexer_advance(l);
+      lexer_advance(l);
+      return token_init(INC, start, 2, line, column);
+    }
+  }
+
+  if (ispunct(current_char) && current_char != ';' && !isspace(current_char) &&
+      current_char != 0) {
+    char op_char = current_char;
     lexer_advance(l);
+
+    switch (op_char) {
+    case '+':
+      return token_init(PLUS, start, 1, line, column);
+    case '-':
+      return token_init(MINUS, start, 1, line, column);
+    case '!':
+      return token_init(BANG, start, 1, line, column);
+    case '%':
+      return token_init(MOD, start, 1, line, column);
+    case '*':
+      return token_init(ASTERISK, start, 1, line, column);
+    case '/':
+      return token_init(SLASH, start, 1, line, column);
+    case '=':
+      return token_init(EQUAL, start, 1, line, column);
+    case '>':
+      return token_init(GT, start, 1, line, column);
+    case '<':
+      return token_init(LT, start, 1, line, column);
+    default:
+      return lexer_error(l, start, 1);
+    }
   }
-  if (len == 2 && strncmp(start, ":=", 2) == 0) {
-    return token_init(ASSIGN, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "->", 2) == 0) {
-    return token_init(FUNCTION_R, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "+", 1) == 0) {
-    return token_init(PLUS, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "!", 1) == 0) {
-    return token_init(BANG, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "-", 1) == 0) {
-    return token_init(MINUS, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "%", 1) == 0) {
-    return token_init(MOD, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "*", 1) == 0) {
-    return token_init(ASTERISK, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "/", 1) == 0) {
-    return token_init(SLASH, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "=", 1) == 0) {
-    return token_init(EQUAL, start, len, line, column);
-  } else if (len == 1 && strncmp(start, ">", 1) == 0) {
-    return token_init(GT, start, len, line, column);
-  } else if (len == 1 && strncmp(start, "<", 1) == 0) {
-    return token_init(LT, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "<=", 2) == 0) {
-    return token_init(LT_EQ, start, len, line, column);
-  } else if (len == 2 && strncmp(start, ">=", 2) == 0) {
-    return token_init(GT_EQ, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "==", 2) == 0) {
-    return token_init(EQ_EQ, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "!=", 2) == 0) {
-    return token_init(NOT_EQ, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "--", 2) == 0) {
-    return token_init(DEC, start, len, line, column);
-  } else if (len == 2 && strncmp(start, "++", 2) == 0) {
-    return token_init(INC, start, len, line, column);
-  } else {
-    return lexer_error(l, start, len);
-  }
-  return NULL;
+
+  return lexer_error(l, start, 0);
 }
 
 struct token *lexer_punctuation(struct lexer *l) {
@@ -374,6 +428,13 @@ void lexer_whitespace(struct lexer *l) {
   while (isspace(l->current_char)) {
     lexer_advance(l);
   }
+}
+
+char lexer_peek(struct lexer *l) {
+  if (l->next_position >= (l->buffer + l->length)) {
+    return -1;
+  }
+  return *l->next_position;
 }
 
 void lexer_free(struct lexer *l) {
