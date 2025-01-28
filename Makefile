@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -Iinclude -g
+CFLAGS := -Wall -Wextra -Iinclude -g -static
 TEST_FLAGS := $(CFLAGS) -Itests -DTRACE_ON=1
 
 SRC_DIR := src
