@@ -2,6 +2,7 @@
 #define REPR_H
 
 #include "ast.h"
+#include "object_t.h"
 #include "token.h"
 #include "util_error.h"
 #include <stddef.h>
@@ -106,5 +107,10 @@ void t_block_stmt_repr(struct block_statement *b_stmt, string_t *str);
  * print a representation of an expression
  */
 void t_expr_repr(struct expression *expr, string_t *str);
+
+/**
+ * print a representation of an object
+ */
+void t_object_repr(struct obj_t *object, string_t *str);
 
 #endif // !REPR_H
