@@ -1,5 +1,6 @@
 #include "evaluator.h"
 #include "ast.h"
+#include "error_t.h"
 #include "object_t.h"
 #include "token.h"
 #include <stddef.h>
@@ -18,27 +19,27 @@ struct obj_t *evaluate_statement(struct statement *);
 struct obj_t *evaluate_return_statement(struct statement *);
 
 struct obj_t *evaluate_literal_expr(struct expression *);
-struct obj_t *evaluate_prefix_expr(enum TOKEN_TYPE, struct obj_t *);
-struct obj_t *evaluate_infix_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_postfix_expr(enum TOKEN_TYPE, struct obj_t *);
+struct obj_t *evaluate_prefix_expr(struct token *, struct obj_t *);
+struct obj_t *evaluate_infix_expr(struct token *, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_postfix_expr(struct token *, struct obj_t *);
 
 struct obj_t *evaluate_block_statements(struct block_statement *);
 struct obj_t *evaluate_if_expression(struct expression *);
 
-struct obj_t *evaluate_prefix_bang_operator_expr(struct obj_t *);
-struct obj_t *evaluate_prefix_minus_operator_expr(struct obj_t *);
-struct obj_t *evaluate_prefix_plus_operator_expr(struct obj_t *);
-struct obj_t *evaluate_prefix_increment_operator_expr(struct obj_t *);
-struct obj_t *evaluate_prefix_decrement_operator_expr(struct obj_t *);
+struct obj_t *evaluate_prefix_bang_operator_expr(struct token*, struct obj_t *);
+struct obj_t *evaluate_prefix_minus_operator_expr(struct token*, struct obj_t *);
+struct obj_t *evaluate_prefix_plus_operator_expr(struct token*, struct obj_t *);
+struct obj_t *evaluate_prefix_increment_operator_expr(struct token*, struct obj_t *);
+struct obj_t *evaluate_prefix_decrement_operator_expr(struct token*, struct obj_t *);
 
-struct obj_t *evaluate_infix_integer_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_infix_boolean_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_infix_float_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_infix_char_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_infix_string_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_infix_integer_expr(struct token *, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_infix_boolean_expr(struct token *, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_infix_float_expr(struct token *, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_infix_char_expr(struct token *, struct obj_t *, struct obj_t *);
+struct obj_t *evaluate_infix_string_expr(struct token *, struct obj_t *, struct obj_t *);
 
-struct obj_t *evaluate_postfix_integer_expr(enum TOKEN_TYPE, struct obj_t *);
-struct obj_t *evaluate_postfix_float_expr(enum TOKEN_TYPE, struct obj_t *);
+struct obj_t *evaluate_postfix_integer_expr(struct token *, struct obj_t *);
+struct obj_t *evaluate_postfix_float_expr(struct token *, struct obj_t *);
 
 bool is_truthy(struct obj_t*);
 
@@ -82,7 +83,7 @@ struct obj_t *evaluate_expression(struct expression *expr) {
     if (!right) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
-    return evaluate_prefix_expr(expr->prefix_expr.op->type, right);
+    return evaluate_prefix_expr(expr->prefix_expr.op, right);
   };
   case EXPR_INFIX: {
     struct obj_t *left = evaluate_expression(expr->infix_expr.left);
@@ -90,7 +91,7 @@ struct obj_t *evaluate_expression(struct expression *expr) {
     if (!left || !right) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
-    return evaluate_infix_expr(expr->infix_expr.op->type, left, right);
+    return evaluate_infix_expr(expr->infix_expr.op, left, right);
   };
   case EXPR_CONDITIONAL: {
     return evaluate_if_expression(expr);
@@ -204,27 +205,33 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
   }
 }
 
-struct obj_t *evaluate_prefix_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_prefix_expr(struct token *operator,
                                    struct obj_t * right) {
-  switch (operator) {
+  switch (operator->type) {
   case BANG: {
-    return evaluate_prefix_bang_operator_expr(right);
-  }; break;
+    return evaluate_prefix_bang_operator_expr(operator, right);
+  }
   case MINUS: {
-    return evaluate_prefix_minus_operator_expr(right);
-  }; break;
+    return evaluate_prefix_minus_operator_expr(operator, right);
+  }
   case INC: {
-    return evaluate_prefix_increment_operator_expr(right);
-  }; break;
+    return evaluate_prefix_increment_operator_expr(operator, right);
+  }
   case DEC: {
-    return evaluate_prefix_decrement_operator_expr(right);
-  }; break;
-  default:
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return evaluate_prefix_decrement_operator_expr(operator, right);
+  }
+  default: {
+    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    error_t_format_err(
+        err->err_value, operator, "prefix operator not found",
+        "!, -, ++, and -- are the only prefix operators permitted");
+    return err;
+  };
   }
 }
 
-struct obj_t *evaluate_prefix_bang_operator_expr(struct obj_t *right) {
+struct obj_t *evaluate_prefix_bang_operator_expr(struct token *operator,
+                                                 struct obj_t * right) {
   if (right == &OBJ_SENTINEL) {
     return (struct obj_t *)&OBJ_TRUE;
   } else if (right == &OBJ_TRUE) {
@@ -236,7 +243,8 @@ struct obj_t *evaluate_prefix_bang_operator_expr(struct obj_t *right) {
   }
 }
 
-struct obj_t *evaluate_prefix_minus_operator_expr(struct obj_t *right) {
+struct obj_t *evaluate_prefix_minus_operator_expr(struct token *operator,
+                                                  struct obj_t * right) {
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = object_t_init(OBJECT_INT);
     if (!obj) {
@@ -252,11 +260,16 @@ struct obj_t *evaluate_prefix_minus_operator_expr(struct obj_t *right) {
     obj->double_value = -right->double_value;
     return obj;
   } else {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    error_t_format_err(
+        err->err_value, operator, "invalid use of prefix operator",
+        "only numerical types can be used with prefix operator -");
+    return err;
   }
 }
 
-struct obj_t *evaluate_prefix_plus_operator_expr(struct obj_t *right) {
+struct obj_t *evaluate_prefix_plus_operator_expr(struct token *token,
+                                                 struct obj_t *right) {
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = object_t_init(OBJECT_INT);
     if (!obj) {
@@ -272,11 +285,16 @@ struct obj_t *evaluate_prefix_plus_operator_expr(struct obj_t *right) {
     obj->double_value = +right->double_value;
     return obj;
   } else {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    error_t_format_err(
+        err->err_value, token, "invalid use of prefix operator",
+        "only numerical types can be used with prefix operator +");
+    return err;
   }
 }
 
-struct obj_t *evaluate_prefix_increment_operator_expr(struct obj_t *right) {
+struct obj_t *evaluate_prefix_increment_operator_expr(struct token *token,
+                                                      struct obj_t *right) {
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = object_t_init(OBJECT_INT);
     if (!obj) {
@@ -292,11 +310,16 @@ struct obj_t *evaluate_prefix_increment_operator_expr(struct obj_t *right) {
     obj->double_value = right->double_value + 1;
     return obj;
   } else {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    error_t_format_err(
+        err->err_value, token, "invalid use of prefix operator",
+        "only numerical types can be used with prefix operator ++");
+    return err;
   }
 }
 
-struct obj_t *evaluate_prefix_decrement_operator_expr(struct obj_t *right) {
+struct obj_t *evaluate_prefix_decrement_operator_expr(struct token *operator,
+                                                      struct obj_t * right) {
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = object_t_init(OBJECT_INT);
     if (!obj) {
@@ -312,11 +335,15 @@ struct obj_t *evaluate_prefix_decrement_operator_expr(struct obj_t *right) {
     obj->double_value = right->double_value - 1;
     return obj;
   } else {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    error_t_format_err(
+        err->err_value, operator, "invalid use of prefix operator",
+        "only numerical types can be used with prefix operator --");
+    return err;
   }
 }
 
-struct obj_t *evaluate_infix_expr(enum TOKEN_TYPE operator, struct obj_t * left,
+struct obj_t *evaluate_infix_expr(struct token *operator, struct obj_t * left,
                                   struct obj_t *right) {
   if (left && right) {
     if (left->type == OBJECT_INT && right->type == OBJECT_INT) {
@@ -329,16 +356,20 @@ struct obj_t *evaluate_infix_expr(enum TOKEN_TYPE operator, struct obj_t * left,
       return evaluate_infix_boolean_expr(operator, left, right);
     } else if (left->type == OBJECT_STRING && right->type == OBJECT_STRING) {
       return evaluate_infix_string_expr(operator, left, right);
+    } else {
+      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      error_t_format_err(err->err_value, operator, "type mismatch", "");
+      return err;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_infix_integer_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_infix_integer_expr(struct token *operator,
                                           struct obj_t * left,
                                           struct obj_t *right) {
   if (left && right) {
-    switch (operator) {
+    switch (operator->type) {
     case PLUS: {
       struct obj_t *obj = object_t_init(OBJECT_INT);
       if (obj) {
@@ -398,36 +429,45 @@ struct obj_t *evaluate_infix_integer_expr(enum TOKEN_TYPE operator,
       return left->double_value != right->double_value
                  ? (struct obj_t *)&OBJ_TRUE
                  : (struct obj_t *)&OBJ_FALSE;
-    default:
-      break;
+    default: {
+      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      error_t_format_err(err->err_value, operator, "operator not found",
+                         "allowed binary operators for integers -> +, -, /, *, "
+                         "==, != , >, <, >=, <=, %");
+      return err;
+    }; break;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_infix_boolean_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_infix_boolean_expr(struct token *operator,
                                           struct obj_t * left,
                                           struct obj_t *right) {
   if (left && right) {
-    switch (operator) {
+    switch (operator->type) {
     case EQ_EQ:
       return left->bool_value == right->bool_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
     case NOT_EQ:
       return left->bool_value != right->bool_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
-    default:
-      break;
+    default: {
+      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      error_t_format_err(err->err_value, operator, "operator not found",
+                         "allowed binary operators for boolean -> ==, !=");
+      return err;
+    }; break;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_infix_float_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_infix_float_expr(struct token *operator,
                                         struct obj_t * left,
                                         struct obj_t *right) {
   if (left && right) {
-    switch (operator) {
+    switch (operator->type) {
     case PLUS: {
       struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
       if (obj) {
@@ -484,31 +524,40 @@ struct obj_t *evaluate_infix_float_expr(enum TOKEN_TYPE operator,
       return left->double_value != right->double_value
                  ? (struct obj_t *)&OBJ_TRUE
                  : (struct obj_t *)&OBJ_FALSE;
-    default:
-      break;
+    default: {
+      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      error_t_format_err(err->err_value, operator, "operator not found",
+                         "allowed binary operators for floats -> +, -, /, *, "
+                         "==, != , >, <, >=, <=");
+      return err;
+    }; break;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_infix_char_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_infix_char_expr(struct token *operator,
                                        struct obj_t * left,
                                        struct obj_t *right) {
   if (left && right) {
-    switch (operator) {
+    switch (operator->type) {
     case EQ_EQ:
       return left->rune_value == right->rune_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
     case NOT_EQ:
       return left->rune_value != right->rune_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
-    default:
-      break;
+    default: {
+      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      error_t_format_err(err->err_value, operator, "operator not found",
+                         "allowed binary operators for char -> ==, !=");
+      return err;
+    }; break;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
-struct obj_t *evaluate_infix_string_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_infix_string_expr(struct token *operator,
                                          struct obj_t * left,
                                          struct obj_t *right) {
   if (left && right) {
@@ -516,7 +565,7 @@ struct obj_t *evaluate_infix_string_expr(enum TOKEN_TYPE operator,
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_postfix_expr(enum TOKEN_TYPE operator,
+struct obj_t *evaluate_postfix_expr(struct token *operator,
                                     struct obj_t * left) {
   return (struct obj_t *)&OBJ_SENTINEL;
 }
