@@ -29,6 +29,9 @@ struct obj_t *object_t_init(enum OBJECT_TYPE type) {
     v->rune_value = '\0';
   case OBJECT_SENTINEL:
     break;
+  case OBJECT_RETURN:
+    v->return_value.value = NULL;
+    break;
   default: {
     free(v);
     v = NULL;
