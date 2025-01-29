@@ -35,6 +35,7 @@ struct lexer {
   const char *next_position;
   byte current_char;
   long line;
+  const char *line_start_pos;
   long column;
   enum LEXER_STATE current_state;
   struct token_pool *pool;
