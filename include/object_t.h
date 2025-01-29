@@ -13,6 +13,7 @@ enum OBJECT_TYPE {
   OBJECT_BOOL,
   OBJECT_CHAR,
   OBJECT_SENTINEL, // basically a null value
+  OBJECT_RETURN,
 };
 
 struct obj_t {
@@ -28,6 +29,10 @@ struct obj_t {
       size_t length;
       size_t capacity;
     } string_value;
+
+    struct {
+      struct obj_t *value;
+    } return_value;
 
     struct {
     } sentinel; // basically a null value
