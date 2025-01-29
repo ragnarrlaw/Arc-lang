@@ -3,7 +3,6 @@
 #include "object_t.h"
 #include "token.h"
 #include <stddef.h>
-#include <stdio.h>
 #include <string.h>
 
 // clang-format off
@@ -14,10 +13,16 @@ static const struct obj_t OBJ_SENTINEL = {.type = OBJECT_SENTINEL};
 static const struct obj_t OBJ_TRUE = {.type = OBJECT_BOOL, .bool_value = true};
 static const struct obj_t OBJ_FALSE = {.type = OBJECT_BOOL, .bool_value = false};
 
+struct obj_t *evaluate_statements(struct statement **, size_t);
+struct obj_t *evaluate_statement(struct statement *);
+
 struct obj_t *evaluate_literal_expr(struct expression *);
 struct obj_t *evaluate_prefix_expr(enum TOKEN_TYPE, struct obj_t *);
 struct obj_t *evaluate_infix_expr(enum TOKEN_TYPE, struct obj_t *, struct obj_t *);
 struct obj_t *evaluate_postfix_expr(enum TOKEN_TYPE, struct obj_t *);
+
+struct obj_t *evaluate_block_statements(struct block_statement *);
+struct obj_t *evaluate_if_expression(struct expression *);
 
 struct obj_t *evaluate_prefix_bang_operator_expr(struct obj_t *);
 struct obj_t *evaluate_prefix_minus_operator_expr(struct obj_t *);
@@ -34,20 +39,26 @@ struct obj_t *evaluate_infix_string_expr(enum TOKEN_TYPE, struct obj_t *, struct
 struct obj_t *evaluate_postfix_integer_expr(enum TOKEN_TYPE, struct obj_t *);
 struct obj_t *evaluate_postfix_float_expr(enum TOKEN_TYPE, struct obj_t *);
 
+bool is_truthy(struct obj_t*);
+
 // clang-format on
 
 struct obj_t *evaluate_program(struct program *program) {
   if (!program) {
     return (struct obj_t *)&OBJ_SENTINEL;
   }
-  for (size_t i = 0; i < program->statement_count; i++) {
-    switch (program->statements[i]->type) {
+  return evaluate_statements(program->statements, program->statement_count);
+}
+
+struct obj_t *evaluate_statement(struct statement *stmt) {
+  if (stmt) {
+    switch (stmt->type) {
     case STMT_LET: {
     }; break;
     case STMT_RETURN: {
     }; break;
     case STMT_EXPRESSION: {
-      return evaluate_expression(program->statements[i]->expr_stmt.expr);
+      return evaluate_expression(stmt->expr_stmt.expr);
     }; break;
     case STMT_FUNCTION_DEF: {
     }; break;
@@ -79,9 +90,41 @@ struct obj_t *evaluate_expression(struct expression *expr) {
     }
     return evaluate_infix_expr(expr->infix_expr.op->type, left, right);
   };
+  case EXPR_CONDITIONAL: {
+    return evaluate_if_expression(expr);
+  };
   default:
     return (struct obj_t *)&OBJ_SENTINEL;
   }
+}
+
+struct obj_t *evaluate_statements(struct statement **stmts, size_t stmt_count) {
+  struct obj_t *result;
+  for (size_t i = 0; i < stmt_count; i++) {
+    result = evaluate_statement(stmts[i]);
+  }
+  return result;
+}
+
+struct obj_t *evaluate_block_statements(struct block_statement *block) {
+  if (block) {
+    return evaluate_statements(block->statements, block->statement_count);
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_if_expression(struct expression *expr) {
+  if (expr) {
+    struct obj_t *condition = evaluate_expression(expr->conditional.condition);
+    if (is_truthy(condition)) {
+      return evaluate_block_statements(expr->conditional.consequence);
+    } else if (expr->conditional.alternative) {
+      return evaluate_block_statements(expr->conditional.alternative);
+    } else {
+      return (struct obj_t *)&OBJ_SENTINEL;
+    }
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
 }
 
 struct obj_t *evaluate_fn_def_stmt(struct expression *expr) {
@@ -313,48 +356,25 @@ struct obj_t *evaluate_infix_integer_expr(enum TOKEN_TYPE operator,
         return obj;
       }
     }; break;
-    case GT: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->int_value > right->int_value;
-        return obj;
-      }
-    }; break;
-    case GT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->int_value >= right->int_value;
-        return obj;
-      }
-    }; break;
-    case LT: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->int_value < right->int_value;
-        return obj;
-      }
-    }; break;
-    case LT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->int_value <= right->int_value;
-        return obj;
-      }
-    }; break;
-    case EQ_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->int_value == right->int_value;
-        return obj;
-      }
-    }; break;
-    case NOT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value != right->double_value;
-        return obj;
-      }
-    }; break;
+    case GT:
+      return left->int_value > right->int_value ? (struct obj_t *)&OBJ_TRUE
+                                                : (struct obj_t *)&OBJ_FALSE;
+    case GT_EQ:
+      return left->int_value >= right->int_value ? (struct obj_t *)&OBJ_TRUE
+                                                 : (struct obj_t *)&OBJ_FALSE;
+    case LT:
+      return left->int_value < right->int_value ? (struct obj_t *)&OBJ_TRUE
+                                                : (struct obj_t *)&OBJ_FALSE;
+    case LT_EQ:
+      return left->int_value <= right->int_value ? (struct obj_t *)&OBJ_TRUE
+                                                 : (struct obj_t *)&OBJ_FALSE;
+    case EQ_EQ:
+      return left->int_value == right->int_value ? (struct obj_t *)&OBJ_TRUE
+                                                 : (struct obj_t *)&OBJ_FALSE;
+    case NOT_EQ:
+      return left->double_value != right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
     default:
       break;
     }
@@ -367,20 +387,12 @@ struct obj_t *evaluate_infix_boolean_expr(enum TOKEN_TYPE operator,
                                           struct obj_t *right) {
   if (left && right) {
     switch (operator) {
-    case EQ_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->bool_value == right->bool_value;
-        return obj;
-      }
-    }; break;
-    case NOT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->bool_value != right->bool_value;
-        return obj;
-      }
-    }; break;
+    case EQ_EQ:
+      return left->bool_value == right->bool_value ? (struct obj_t *)&OBJ_TRUE
+                                                   : (struct obj_t *)&OBJ_FALSE;
+    case NOT_EQ:
+      return left->bool_value != right->bool_value ? (struct obj_t *)&OBJ_TRUE
+                                                   : (struct obj_t *)&OBJ_FALSE;
     default:
       break;
     }
@@ -425,73 +437,48 @@ struct obj_t *evaluate_infix_float_expr(enum TOKEN_TYPE operator,
         }
       }
     }; break;
-    case GT: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value > right->double_value;
-        return obj;
-      }
-    }; break;
-    case GT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value >= right->double_value;
-        return obj;
-      }
-    }; break;
-    case LT: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value < right->double_value;
-        return obj;
-      }
-    }; break;
-    case LT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value <= right->double_value;
-        return obj;
-      }
-    }; break;
-    case EQ_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value == right->double_value;
-        return obj;
-      }
-    }; break;
-    case NOT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->double_value != right->double_value;
-        return obj;
-      }
-    }; break;
+    case GT:
+      return left->double_value > right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
+    case GT_EQ:
+      return left->double_value >= right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
+    case LT:
+      return left->double_value < right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
+    case LT_EQ:
+      return left->double_value <= right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
+    case EQ_EQ:
+      return left->double_value == right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
+    case NOT_EQ:
+      return left->double_value != right->double_value
+                 ? (struct obj_t *)&OBJ_TRUE
+                 : (struct obj_t *)&OBJ_FALSE;
     default:
       break;
     }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
+
 struct obj_t *evaluate_infix_char_expr(enum TOKEN_TYPE operator,
                                        struct obj_t * left,
                                        struct obj_t *right) {
   if (left && right) {
     switch (operator) {
-    case EQ_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->rune_value == right->rune_value;
-        return obj;
-      }
-    }; break;
-    case NOT_EQ: {
-      struct obj_t *obj = object_t_init(OBJECT_BOOL);
-      if (obj) {
-        obj->bool_value = left->rune_value != right->rune_value;
-        return obj;
-      }
-    }; break;
+    case EQ_EQ:
+      return left->rune_value == right->rune_value ? (struct obj_t *)&OBJ_TRUE
+                                                   : (struct obj_t *)&OBJ_FALSE;
+    case NOT_EQ:
+      return left->rune_value != right->rune_value ? (struct obj_t *)&OBJ_TRUE
+                                                   : (struct obj_t *)&OBJ_FALSE;
     default:
       break;
     }
@@ -509,4 +496,16 @@ struct obj_t *evaluate_infix_string_expr(enum TOKEN_TYPE operator,
 struct obj_t *evaluate_postfix_expr(enum TOKEN_TYPE operator,
                                     struct obj_t * left) {
   return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+bool is_truthy(struct obj_t *object) {
+  if (object == (struct obj_t *)&OBJ_TRUE) {
+    return true;
+  } else if (object == (struct obj_t *)&OBJ_FALSE) {
+    return false;
+  } else if (object == (struct obj_t *)&OBJ_SENTINEL) {
+    return false;
+  } else {
+    return true;
+  }
 }
