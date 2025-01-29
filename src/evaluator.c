@@ -15,6 +15,7 @@ static const struct obj_t OBJ_FALSE = {.type = OBJECT_BOOL, .bool_value = false}
 
 struct obj_t *evaluate_statements(struct statement **, size_t);
 struct obj_t *evaluate_statement(struct statement *);
+struct obj_t *evaluate_return_statement(struct statement *);
 
 struct obj_t *evaluate_literal_expr(struct expression *);
 struct obj_t *evaluate_prefix_expr(enum TOKEN_TYPE, struct obj_t *);
@@ -56,6 +57,7 @@ struct obj_t *evaluate_statement(struct statement *stmt) {
     case STMT_LET: {
     }; break;
     case STMT_RETURN: {
+      return evaluate_return_statement(stmt);
     }; break;
     case STMT_EXPRESSION: {
       return evaluate_expression(stmt->expr_stmt.expr);
@@ -102,13 +104,34 @@ struct obj_t *evaluate_statements(struct statement **stmts, size_t stmt_count) {
   struct obj_t *result;
   for (size_t i = 0; i < stmt_count; i++) {
     result = evaluate_statement(stmts[i]);
+    if (result && result->type == OBJECT_RETURN) {
+      return result->return_value.value;
+    }
   }
   return result;
 }
 
 struct obj_t *evaluate_block_statements(struct block_statement *block) {
   if (block) {
-    return evaluate_statements(block->statements, block->statement_count);
+    struct obj_t *result;
+    for (size_t i = 0; i < block->statement_count; i++) {
+      result = evaluate_statement(block->statements[i]);
+      if (result && result->type == OBJECT_RETURN) {
+        return result;
+      }
+    }
+    return result;
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_return_statement(struct statement *stmt) {
+  if (stmt) {
+    struct obj_t *object = object_t_init(OBJECT_RETURN);
+    if (object) {
+      object->return_value.value = evaluate_expression(stmt->return_stmt.value);
+      return object;
+    }
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
