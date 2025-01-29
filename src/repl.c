@@ -108,9 +108,12 @@ void evaluate(const char *buffer, size_t size) {
     string_t *str = init_string_t(8);
 
     struct obj_t *result = evaluate_program(program);
-    t_object_repr(result, str);
-    repr_string_t(str);
-
+    if (result->type == OBJECT_ERROR) {
+        frepr_string_t(stderr, result->err_value->message);
+    } else {
+        t_object_repr(result, str);
+        repr_string_t(str);
+    }
     ast_program_free(program);
     parser_free(p);
     object_t_free(result);
