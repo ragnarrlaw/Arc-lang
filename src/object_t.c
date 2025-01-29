@@ -1,4 +1,5 @@
 #include "object_t.h"
+#include "error_t.h"
 #include "util_error.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,9 @@ struct obj_t *object_t_init(enum OBJECT_TYPE type) {
   case OBJECT_RETURN:
     v->return_value.value = NULL;
     break;
+  case OBJECT_ERROR:
+    v->err_value = init_error_t();
+    break;
   default: {
     free(v);
     v = NULL;
@@ -47,6 +51,9 @@ void object_t_free(struct obj_t *v) {
       if (v->string_value.data)
         free(v->string_value.data);
       break;
+    case OBJECT_ERROR: {
+      free_error_t(v->err_value);
+    }
     default:
       break;
     }

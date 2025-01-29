@@ -1,12 +1,15 @@
 #ifndef OBJECT_T_H
 #define OBJECT_T_H
 
+#include "error_t.h"
+#include "string_t.h"
 #include <stdbool.h>
 #include <stddef.h>
 
 struct obj_t;
 
 enum OBJECT_TYPE {
+  OBJECT_ERROR,
   OBJECT_INT,
   OBJECT_DOUBLE,
   OBJECT_STRING,
@@ -36,6 +39,8 @@ struct obj_t {
 
     struct {
     } sentinel; // basically a null value
+
+    struct error_t *err_value;
   };
 };
 
