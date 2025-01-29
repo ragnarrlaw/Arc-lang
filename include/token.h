@@ -67,11 +67,13 @@ struct token {
   const char *literal;
   size_t literal_len;
   uint line_number;
+  const char *line_start_pos;
   uint col_number;
 };
 
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
-                         size_t literal_len, uint line, uint col);
+                         size_t literal_len, uint line, uint col,
+                         const char *line_start_pos);
 const char *token_type_to_str(enum TOKEN_TYPE type);
 void token_repr(struct token *t);
 void token_free(struct token *t);

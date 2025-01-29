@@ -65,7 +65,8 @@ static const char *token_types[] = {
 };
 
 struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
-                         size_t literal_len, uint line, uint col) {
+                         size_t literal_len, uint line, uint col,
+                         const char *line_start_pos) {
   struct token *token = (struct token *)malloc(sizeof(struct token));
   if (token == NULL) {
     ERROR_LOG("error while allocating memory");
@@ -76,6 +77,7 @@ struct token *token_init(enum TOKEN_TYPE type, const char *literal_start,
   token->literal_len = literal_len;
   token->line_number = line;
   token->col_number = col;
+  token->line_start_pos = line_start_pos;
   return token;
 }
 
