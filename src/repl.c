@@ -1,8 +1,12 @@
 #include "repl.h"
+#include "ast.h"
+#include "environment.h"
 #include "evaluator.h"
+#include "gc.h"
 #include "lexer.h"
 #include "object_t.h"
 #include "parser.h"
+#include "util_error.h"
 #include "util_repr.h"
 #include <ctype.h>
 #include <stdbool.h>
@@ -83,7 +87,7 @@ bool ends_with_semicolon(const char *buffer, size_t size) {
     return false;
 }
 
-void evaluate(const char *buffer, size_t size) { 
+void evaluate(const char *buffer, size_t size, struct environment *global_env) { 
     struct lexer *l = lexer_init(buffer, size);
     if (!l) {
       printf("Error initializing lexer\n");
@@ -107,7 +111,7 @@ void evaluate(const char *buffer, size_t size) {
 
     string_t *str = init_string_t(8);
 
-    struct obj_t *result = evaluate_program(program);
+    struct obj_t *result = evaluate_program(global_env, program);
     if (result->type == OBJECT_ERROR) {
         frepr_string_t(stderr, result->err_value->message);
     } else {
@@ -116,8 +120,8 @@ void evaluate(const char *buffer, size_t size) {
     }
     ast_program_free(program);
     parser_free(p);
-    object_t_free(result);
     free_string_t(str);
+    gc_collect(global_env);
 }
 
 void repl() {
@@ -125,6 +129,12 @@ void repl() {
     char input[MAX_INPUT_BUFFER_SIZE];
     char *buffer = NULL;
     size_t buffer_size = 0;
+
+    struct environment *global_env = env_init();
+    if (!global_env) {
+        ERROR_LOG("error occurred while allocating memory\n");
+        return;
+    }
 
     while (1) {
         printf("%s", buffer_size == 0 ? PROMPT : CONTINUOUS_PROMPT);
@@ -155,7 +165,7 @@ void repl() {
         }
 
         // perform evaluations on the buffer
-        evaluate(buffer, buffer_size); 
+        evaluate(buffer, buffer_size, global_env); 
 
         free(buffer);
         buffer = NULL;
