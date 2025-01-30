@@ -11,6 +11,9 @@ struct obj_t *object_t_init(enum OBJECT_TYPE type) {
     return NULL;
   }
   v->type = type;
+  v->gc_next = NULL;
+  v->marked = false;
+
   switch (type) {
   case OBJECT_INT:
     v->int_value = 0;
