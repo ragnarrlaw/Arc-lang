@@ -399,6 +399,8 @@ struct statement *parser_parse_let_statement(struct parser *p) {
       return NULL;
     }
     stmt->let_stmt.identifier = p->current_token;
+    stmt->let_stmt.ident =
+        strndup(p->current_token->literal, p->current_token->literal_len);
 
     if (!parser_expect_next_token(p, ASSIGN)) {
       ast_statement_free(stmt);
@@ -672,6 +674,8 @@ struct expression *parser_parse_identifier(struct parser *p) {
     return NULL;
   }
   expr->identifier_expr.token = p->current_token;
+  expr->identifier_expr.identifier =
+      strndup(p->current_token->literal, p->current_token->literal_len);
   return expr;
 }
 
