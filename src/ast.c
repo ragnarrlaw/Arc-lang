@@ -83,6 +83,7 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
     expr->literal.value.int_value = 0;
   }; break;
   case EXPR_IDENTIFIER: {
+    expr->identifier_expr.identifier = NULL;
     expr->identifier_expr.token = NULL;
   }; break;
   case EXPR_INFIX: {
@@ -127,6 +128,11 @@ void ast_expression_free(struct expression *e) {
       ast_literal_free(&e->literal);
     }; break;
     case EXPR_IDENTIFIER: {
+      if (e->identifier_expr.identifier) {
+
+        free(e->identifier_expr.identifier);
+      }
+      e->identifier_expr.identifier = NULL;
     }; break;
     case EXPR_PREFIX: {
       ast_expression_free(e->prefix_expr.right);

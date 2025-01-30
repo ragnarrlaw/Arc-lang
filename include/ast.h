@@ -116,6 +116,7 @@ struct expression {
 
     struct {
       struct token *token;
+      char *identifier;
     } identifier_expr;
 
     struct {
