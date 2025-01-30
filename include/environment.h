@@ -14,7 +14,7 @@
 typedef struct environment environment;
 
 struct environment {
-  struct environment *parent;
+  struct environment *parent; // for global environment, set this to NULL
   struct hash_table *symbols; // k-v store for storing variables and data
 };
 
