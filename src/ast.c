@@ -17,6 +17,7 @@ struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
   case STMT_LET: {
     s->let_stmt.token = NULL;
     s->let_stmt.identifier = NULL;
+    s->let_stmt.ident = NULL;
     s->let_stmt.value = NULL;
 
   }; break;
@@ -44,6 +45,8 @@ void ast_statement_free(struct statement *s) {
   if (s != NULL) {
     switch (s->type) {
     case STMT_LET:
+      if (s->let_stmt.ident)
+        free(s->let_stmt.ident);
       ast_expression_free(s->let_stmt.value);
       break;
     case STMT_RETURN:

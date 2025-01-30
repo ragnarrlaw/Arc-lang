@@ -164,6 +164,7 @@ struct statement {
     struct {
       struct token *token;
       struct token *identifier;
+      char *ident;
       struct token *assign;
       struct expression *value;
     } let_stmt;
