@@ -20,6 +20,9 @@ enum OBJECT_TYPE {
 };
 
 struct obj_t {
+
+  struct obj_t *gc_next;
+  bool marked;
   enum OBJECT_TYPE type;
   union {
     int int_value;
