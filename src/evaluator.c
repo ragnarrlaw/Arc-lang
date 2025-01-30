@@ -1,6 +1,8 @@
 #include "evaluator.h"
 #include "ast.h"
+#include "environment.h"
 #include "error_t.h"
+#include "gc.h"
 #include "object_t.h"
 #include "token.h"
 #include <stddef.h>
@@ -8,23 +10,24 @@
 
 // clang-format off
 
+static const struct obj_t OBJ_SENTINEL = {.type = OBJECT_SENTINEL, .gc_next = NULL, .marked = false};
+static const struct obj_t OBJ_TRUE = {.type = OBJECT_BOOL, .bool_value = true, .gc_next = NULL, .marked = false};
+static const struct obj_t OBJ_FALSE = {.type = OBJECT_BOOL, .bool_value = false, .gc_next = NULL, .marked = false};
 
-
-static const struct obj_t OBJ_SENTINEL = {.type = OBJECT_SENTINEL};
-static const struct obj_t OBJ_TRUE = {.type = OBJECT_BOOL, .bool_value = true};
-static const struct obj_t OBJ_FALSE = {.type = OBJECT_BOOL, .bool_value = false};
-
-struct obj_t *evaluate_statements(struct statement **, size_t);
-struct obj_t *evaluate_statement(struct statement *);
-struct obj_t *evaluate_return_statement(struct statement *);
+struct obj_t *evaluate_statements(struct environment *env, struct statement **, size_t);
+struct obj_t *evaluate_statement(struct environment *env, struct statement *);
+struct obj_t *evaluate_let_statement(struct environment *env, struct statement *);
+struct obj_t *evaluate_return_statement(struct environment *env, struct statement *);
 
 struct obj_t *evaluate_literal_expr(struct expression *);
 struct obj_t *evaluate_prefix_expr(struct token *, struct obj_t *);
 struct obj_t *evaluate_infix_expr(struct token *, struct obj_t *, struct obj_t *);
 struct obj_t *evaluate_postfix_expr(struct token *, struct obj_t *);
 
-struct obj_t *evaluate_block_statements(struct block_statement *);
-struct obj_t *evaluate_if_expression(struct expression *);
+struct obj_t *evaluate_identifier_expr(struct environment *env, char *, struct token *);
+
+struct obj_t *evaluate_block_statements(struct environment *env, struct block_statement *);
+struct obj_t *evaluate_if_expression(struct environment *env, struct expression *);
 
 struct obj_t *evaluate_prefix_bang_operator_expr(struct token*, struct obj_t *);
 struct obj_t *evaluate_prefix_minus_operator_expr(struct token*, struct obj_t *);
@@ -46,23 +49,27 @@ bool has_error(struct obj_t *);
 
 // clang-format on
 
-struct obj_t *evaluate_program(struct program *program) {
+struct obj_t *evaluate_program(struct environment *env,
+                               struct program *program) {
   if (!program) {
     return (struct obj_t *)&OBJ_SENTINEL;
   }
-  return evaluate_statements(program->statements, program->statement_count);
+  return evaluate_statements(env, program->statements,
+                             program->statement_count);
 }
 
-struct obj_t *evaluate_statement(struct statement *stmt) {
+struct obj_t *evaluate_statement(struct environment *env,
+                                 struct statement *stmt) {
   if (stmt) {
     switch (stmt->type) {
     case STMT_LET: {
+      return evaluate_let_statement(env, stmt);
     }; break;
     case STMT_RETURN: {
-      return evaluate_return_statement(stmt);
+      return evaluate_return_statement(env, stmt);
     }; break;
     case STMT_EXPRESSION: {
-      return evaluate_expression(stmt->expr_stmt.expr);
+      return evaluate_expression(env, stmt->expr_stmt.expr);
     }; break;
     case STMT_FUNCTION_DEF: {
     }; break;
@@ -71,7 +78,8 @@ struct obj_t *evaluate_statement(struct statement *stmt) {
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_expression(struct expression *expr) {
+struct obj_t *evaluate_expression(struct environment *env,
+                                  struct expression *expr) {
   if (!expr) {
     return (struct obj_t *)&OBJ_SENTINEL;
   }
@@ -79,36 +87,41 @@ struct obj_t *evaluate_expression(struct expression *expr) {
   case EXPR_LITERAL: {
     return evaluate_literal_expr(expr);
   };
+  case EXPR_IDENTIFIER: {
+    return evaluate_identifier_expr(env, expr->identifier_expr.identifier,
+                                    expr->identifier_expr.token);
+  }; break;
   case EXPR_PREFIX: {
-    struct obj_t *right = evaluate_expression(expr->prefix_expr.right);
+    struct obj_t *right = evaluate_expression(env, expr->prefix_expr.right);
     if (has_error(right)) {
       return right;
     }
     return evaluate_prefix_expr(expr->prefix_expr.op, right);
   };
   case EXPR_INFIX: {
-    struct obj_t *left = evaluate_expression(expr->infix_expr.left);
+    struct obj_t *left = evaluate_expression(env, expr->infix_expr.left);
     if (has_error(left)) {
       return left;
     }
-    struct obj_t *right = evaluate_expression(expr->infix_expr.right);
+    struct obj_t *right = evaluate_expression(env, expr->infix_expr.right);
     if (has_error(right)) {
       return right;
     }
     return evaluate_infix_expr(expr->infix_expr.op, left, right);
   };
   case EXPR_CONDITIONAL: {
-    return evaluate_if_expression(expr);
+    return evaluate_if_expression(env, expr);
   };
   default:
     return (struct obj_t *)&OBJ_SENTINEL;
   }
 }
 
-struct obj_t *evaluate_statements(struct statement **stmts, size_t stmt_count) {
+struct obj_t *evaluate_statements(struct environment *env,
+                                  struct statement **stmts, size_t stmt_count) {
   struct obj_t *result;
   for (size_t i = 0; i < stmt_count; i++) {
-    result = evaluate_statement(stmts[i]);
+    result = evaluate_statement(env, stmts[i]);
     if (result && result->type == OBJECT_RETURN) {
       return result->return_value.value;
     } else if (result && result->type == OBJECT_ERROR) {
@@ -118,11 +131,25 @@ struct obj_t *evaluate_statements(struct statement **stmts, size_t stmt_count) {
   return result;
 }
 
-struct obj_t *evaluate_block_statements(struct block_statement *block) {
+struct obj_t *evaluate_let_statement(struct environment *env,
+                                     struct statement *stmt) {
+  if (stmt) {
+    struct obj_t *value = evaluate_expression(env, stmt->let_stmt.value);
+    if (has_error(value)) {
+      return value;
+    }
+    env_define(env, stmt->let_stmt.ident, value);
+    return value;
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_block_statements(struct environment *env,
+                                        struct block_statement *block) {
   if (block) {
     struct obj_t *result;
     for (size_t i = 0; i < block->statement_count; i++) {
-      result = evaluate_statement(block->statements[i]);
+      result = evaluate_statement(env, block->statements[i]);
       if (result && result->type == OBJECT_RETURN) {
         return result;
       } else if (result && result->type == OBJECT_ERROR) {
@@ -134,13 +161,14 @@ struct obj_t *evaluate_block_statements(struct block_statement *block) {
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_return_statement(struct statement *stmt) {
+struct obj_t *evaluate_return_statement(struct environment *env,
+                                        struct statement *stmt) {
   if (stmt) {
-    struct obj_t *value = evaluate_expression(stmt->return_stmt.value);
+    struct obj_t *value = evaluate_expression(env, stmt->return_stmt.value);
     if (has_error(value)) {
       return value;
     }
-    struct obj_t *object = object_t_init(OBJECT_RETURN);
+    struct obj_t *object = gc_alloc(OBJECT_RETURN);
     if (object) {
       object->return_value.value = value;
       return object;
@@ -149,16 +177,18 @@ struct obj_t *evaluate_return_statement(struct statement *stmt) {
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_if_expression(struct expression *expr) {
+struct obj_t *evaluate_if_expression(struct environment *env,
+                                     struct expression *expr) {
   if (expr) {
-    struct obj_t *condition = evaluate_expression(expr->conditional.condition);
+    struct obj_t *condition =
+        evaluate_expression(env, expr->conditional.condition);
     if (has_error(condition)) {
       return condition;
     }
     if (is_truthy(condition)) {
-      return evaluate_block_statements(expr->conditional.consequence);
+      return evaluate_block_statements(env, expr->conditional.consequence);
     } else if (expr->conditional.alternative) {
-      return evaluate_block_statements(expr->conditional.alternative);
+      return evaluate_block_statements(env, expr->conditional.alternative);
     } else {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
@@ -181,7 +211,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
                                           : (struct obj_t *)&OBJ_FALSE;
   };
   case LITERAL_INT: {
-    struct obj_t *obj = object_t_init(OBJECT_INT);
+    struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
@@ -189,7 +219,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
     return obj;
   };
   case LITERAL_FLOAT: {
-    struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
@@ -197,7 +227,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
     return obj;
   };
   case LITERAL_STRING: {
-    struct obj_t *obj = object_t_init(OBJECT_STRING);
+    struct obj_t *obj = gc_alloc(OBJECT_STRING);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
@@ -208,7 +238,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
     return obj;
   };
   case LITERAL_CHAR: {
-    struct obj_t *obj = object_t_init(OBJECT_CHAR);
+    struct obj_t *obj = gc_alloc(OBJECT_CHAR);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
@@ -236,7 +266,7 @@ struct obj_t *evaluate_prefix_expr(struct token *operator,
     return evaluate_prefix_decrement_operator_expr(operator, right);
   }
   default: {
-    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
     error_t_format_err(
         err->err_value, operator, "prefix operator not found",
         "!, -, ++, and -- are the only prefix operators permitted");
@@ -261,21 +291,21 @@ struct obj_t *evaluate_prefix_bang_operator_expr(struct token *operator,
 struct obj_t *evaluate_prefix_minus_operator_expr(struct token *operator,
                                                   struct obj_t * right) {
   if (right->type == OBJECT_INT) {
-    struct obj_t *obj = object_t_init(OBJECT_INT);
+    struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->int_value = -right->int_value;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->double_value = -right->double_value;
     return obj;
   } else {
-    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
     error_t_format_err(
         err->err_value, operator, "invalid use of prefix operator",
         "only numerical types can be used with prefix operator -");
@@ -286,21 +316,21 @@ struct obj_t *evaluate_prefix_minus_operator_expr(struct token *operator,
 struct obj_t *evaluate_prefix_plus_operator_expr(struct token *token,
                                                  struct obj_t *right) {
   if (right->type == OBJECT_INT) {
-    struct obj_t *obj = object_t_init(OBJECT_INT);
+    struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->int_value = +right->int_value;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->double_value = +right->double_value;
     return obj;
   } else {
-    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
     error_t_format_err(
         err->err_value, token, "invalid use of prefix operator",
         "only numerical types can be used with prefix operator +");
@@ -311,21 +341,21 @@ struct obj_t *evaluate_prefix_plus_operator_expr(struct token *token,
 struct obj_t *evaluate_prefix_increment_operator_expr(struct token *token,
                                                       struct obj_t *right) {
   if (right->type == OBJECT_INT) {
-    struct obj_t *obj = object_t_init(OBJECT_INT);
+    struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->int_value = right->int_value + 1;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->double_value = right->double_value + 1;
     return obj;
   } else {
-    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
     error_t_format_err(
         err->err_value, token, "invalid use of prefix operator",
         "only numerical types can be used with prefix operator ++");
@@ -336,21 +366,21 @@ struct obj_t *evaluate_prefix_increment_operator_expr(struct token *token,
 struct obj_t *evaluate_prefix_decrement_operator_expr(struct token *operator,
                                                       struct obj_t * right) {
   if (right->type == OBJECT_INT) {
-    struct obj_t *obj = object_t_init(OBJECT_INT);
+    struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->int_value = right->int_value - 1;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
     obj->double_value = right->double_value - 1;
     return obj;
   } else {
-    struct obj_t *err = object_t_init(OBJECT_ERROR);
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
     error_t_format_err(
         err->err_value, operator, "invalid use of prefix operator",
         "only numerical types can be used with prefix operator --");
@@ -372,7 +402,7 @@ struct obj_t *evaluate_infix_expr(struct token *operator, struct obj_t * left,
     } else if (left->type == OBJECT_STRING && right->type == OBJECT_STRING) {
       return evaluate_infix_string_expr(operator, left, right);
     } else {
-      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "type mismatch", "");
       return err;
     }
@@ -386,28 +416,28 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
   if (left && right) {
     switch (operator->type) {
     case PLUS: {
-      struct obj_t *obj = object_t_init(OBJECT_INT);
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
       if (obj) {
         obj->int_value = left->int_value + right->int_value;
         return obj;
       }
     }; break;
     case MINUS: {
-      struct obj_t *obj = object_t_init(OBJECT_INT);
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
       if (obj) {
         obj->int_value = left->int_value - right->int_value;
         return obj;
       }
     }; break;
     case ASTERISK: {
-      struct obj_t *obj = object_t_init(OBJECT_INT);
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
       if (obj) {
         obj->int_value = left->int_value * right->int_value;
         return obj;
       }
     }; break;
     case SLASH: {
-      struct obj_t *obj = object_t_init(OBJECT_INT);
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
       if (obj) {
         if (left->int_value != 0) {
           obj->int_value = left->int_value / right->int_value;
@@ -419,7 +449,7 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
       }
     }; break;
     case MOD: {
-      struct obj_t *obj = object_t_init(OBJECT_INT);
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
       if (obj) {
         obj->int_value = left->int_value % right->int_value;
         return obj;
@@ -445,7 +475,7 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
                  ? (struct obj_t *)&OBJ_TRUE
                  : (struct obj_t *)&OBJ_FALSE;
     default: {
-      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
                          "allowed binary operators for integers -> +, -, /, *, "
                          "==, != , >, <, >=, <=, %");
@@ -468,7 +498,7 @@ struct obj_t *evaluate_infix_boolean_expr(struct token *operator,
       return left->bool_value != right->bool_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
     default: {
-      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
                          "allowed binary operators for boolean -> ==, !=");
       return err;
@@ -484,28 +514,28 @@ struct obj_t *evaluate_infix_float_expr(struct token *operator,
   if (left && right) {
     switch (operator->type) {
     case PLUS: {
-      struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
       if (obj) {
         obj->double_value = left->double_value + right->double_value;
         return obj;
       }
     }; break;
     case MINUS: {
-      struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
       if (obj) {
         obj->double_value = left->double_value - right->double_value;
         return obj;
       }
     }; break;
     case ASTERISK: {
-      struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
       if (obj) {
         obj->double_value = left->double_value * right->double_value;
         return obj;
       }
     }; break;
     case SLASH: {
-      struct obj_t *obj = object_t_init(OBJECT_DOUBLE);
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
       if (obj) {
         if (left->double_value != 0) {
           obj->double_value = left->double_value / right->double_value;
@@ -540,7 +570,7 @@ struct obj_t *evaluate_infix_float_expr(struct token *operator,
                  ? (struct obj_t *)&OBJ_TRUE
                  : (struct obj_t *)&OBJ_FALSE;
     default: {
-      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
                          "allowed binary operators for floats -> +, -, /, *, "
                          "==, != , >, <, >=, <=");
@@ -563,7 +593,7 @@ struct obj_t *evaluate_infix_char_expr(struct token *operator,
       return left->rune_value != right->rune_value ? (struct obj_t *)&OBJ_TRUE
                                                    : (struct obj_t *)&OBJ_FALSE;
     default: {
-      struct obj_t *err = object_t_init(OBJECT_ERROR);
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
                          "allowed binary operators for char -> ==, !=");
       return err;
@@ -583,6 +613,19 @@ struct obj_t *evaluate_infix_string_expr(struct token *operator,
 struct obj_t *evaluate_postfix_expr(struct token *operator,
                                     struct obj_t * left) {
   return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_identifier_expr(struct environment *env,
+                                       char *identifier, struct token *token) {
+  struct obj_t *value = env_look_up(env, identifier);
+  if (!value) {
+    struct obj_t *err = gc_alloc(OBJECT_ERROR);
+    if (err) {
+      error_t_format_err(err->err_value, token, "identifier not found", "");
+    }
+    return err;
+  }
+  return value;
 }
 
 bool is_truthy(struct obj_t *object) {
