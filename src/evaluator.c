@@ -42,6 +42,7 @@ struct obj_t *evaluate_postfix_integer_expr(struct token *, struct obj_t *);
 struct obj_t *evaluate_postfix_float_expr(struct token *, struct obj_t *);
 
 bool is_truthy(struct obj_t*);
+bool has_error(struct obj_t *);
 
 // clang-format on
 
@@ -80,16 +81,19 @@ struct obj_t *evaluate_expression(struct expression *expr) {
   };
   case EXPR_PREFIX: {
     struct obj_t *right = evaluate_expression(expr->prefix_expr.right);
-    if (!right) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+    if (has_error(right)) {
+      return right;
     }
     return evaluate_prefix_expr(expr->prefix_expr.op, right);
   };
   case EXPR_INFIX: {
     struct obj_t *left = evaluate_expression(expr->infix_expr.left);
+    if (has_error(left)) {
+      return left;
+    }
     struct obj_t *right = evaluate_expression(expr->infix_expr.right);
-    if (!left || !right) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+    if (has_error(right)) {
+      return right;
     }
     return evaluate_infix_expr(expr->infix_expr.op, left, right);
   };
@@ -107,6 +111,8 @@ struct obj_t *evaluate_statements(struct statement **stmts, size_t stmt_count) {
     result = evaluate_statement(stmts[i]);
     if (result && result->type == OBJECT_RETURN) {
       return result->return_value.value;
+    } else if (result && result->type == OBJECT_ERROR) {
+      return result;
     }
   }
   return result;
@@ -119,6 +125,8 @@ struct obj_t *evaluate_block_statements(struct block_statement *block) {
       result = evaluate_statement(block->statements[i]);
       if (result && result->type == OBJECT_RETURN) {
         return result;
+      } else if (result && result->type == OBJECT_ERROR) {
+        return result;
       }
     }
     return result;
@@ -128,9 +136,13 @@ struct obj_t *evaluate_block_statements(struct block_statement *block) {
 
 struct obj_t *evaluate_return_statement(struct statement *stmt) {
   if (stmt) {
+    struct obj_t *value = evaluate_expression(stmt->return_stmt.value);
+    if (has_error(value)) {
+      return value;
+    }
     struct obj_t *object = object_t_init(OBJECT_RETURN);
     if (object) {
-      object->return_value.value = evaluate_expression(stmt->return_stmt.value);
+      object->return_value.value = value;
       return object;
     }
   }
@@ -140,6 +152,9 @@ struct obj_t *evaluate_return_statement(struct statement *stmt) {
 struct obj_t *evaluate_if_expression(struct expression *expr) {
   if (expr) {
     struct obj_t *condition = evaluate_expression(expr->conditional.condition);
+    if (has_error(condition)) {
+      return condition;
+    }
     if (is_truthy(condition)) {
       return evaluate_block_statements(expr->conditional.consequence);
     } else if (expr->conditional.alternative) {
@@ -581,3 +596,5 @@ bool is_truthy(struct obj_t *object) {
     return true;
   }
 }
+
+bool has_error(struct obj_t *obj) { return obj && (obj->type == OBJECT_ERROR); }
