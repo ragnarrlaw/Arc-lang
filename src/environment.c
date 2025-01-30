@@ -1,6 +1,7 @@
 #include "environment.h"
 #include "kv.h"
 #include "util_error.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 environment *env_init() {
