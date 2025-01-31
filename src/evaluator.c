@@ -230,13 +230,14 @@ struct obj_t *evaluate_if_expression(struct environment *env,
   return (struct obj_t *)&OBJ_SENTINEL;
 }
 
-struct obj_t *evaluate_fn_expression(struct environment *parent,
+struct obj_t *evaluate_fn_expression(struct environment *env,
                                      struct expression *expr) {
   if (expr) {
     struct obj_t *obj = gc_alloc(OBJECT_FUNCTION);
     if (!obj) {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
+    obj->function_value.env = env;
     obj->function_value.param_capacity = expr->function.param_capacity;
     obj->function_value.param_count = expr->function.param_count;
     obj->function_value.parameters = expr->function.parameters;
@@ -281,9 +282,7 @@ struct obj_t *evaluate_fn_call_expression(struct environment *env,
       free(args);
       return (struct obj_t *)&OBJ_SENTINEL;
     }
-    child->parent = env;
-
-    function->function_value.env = child;
+    child->parent = function->function_value.env;
 
     for (size_t i = 0; i < function->function_value.param_count; i++) {
       env_define(child, function->function_value.parameters[i]->id, args[i]);
