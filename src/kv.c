@@ -41,8 +41,7 @@ void hash_table_free(hash_table *table) {
   free(table);
 }
 
-void hash_table_insert(hash_table *table, const char *key,
-                       struct obj_t *value) {
+void hash_table_insert(hash_table *table, const char *key, void *value) {
   // resize
   if ((double)table->size / table->capacity >= HT_LOAD_FACTOR) {
     resize(table);
@@ -143,8 +142,7 @@ hash_table_iterator hash_table_iterate(hash_table *table) {
   return it;
 }
 
-bool hash_table_next(hash_table_iterator *it, const char **key,
-                     struct obj_t **value) {
+bool hash_table_next(hash_table_iterator *it, const char **key, void **value) {
   while (it->bucket_index < it->table->capacity) {
     if (!it->current_entry) {
       // next bucket
