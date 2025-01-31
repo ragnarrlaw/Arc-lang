@@ -6,7 +6,6 @@
  */
 
 #include "kv.h"
-#include "object_t.h"
 #include <stddef.h>
 
 #define MAX_ROOTS 1024
@@ -26,14 +25,14 @@ environment *env_init();
 /**
  * define a variable in the environment
  */
-void env_define(environment *env, const char *name, struct obj_t *value);
+void env_define(environment *env, const char *name, void *value);
 
 /**
  * search the environment and it's parents for a key, if found
  * the value in the key is overriden, else a new key entry is
  * added to the current environment
  */
-void env_set(environment *env, const char *name, struct obj_t *value);
+void env_set(environment *env, const char *name, void *value);
 
 /**
  * look up a variable name or a value in the current environment

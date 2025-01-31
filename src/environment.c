@@ -28,11 +28,11 @@ void env_free(environment *env) {
   env = NULL;
 }
 
-void env_define(environment *env, const char *name, struct obj_t *value) {
+void env_define(environment *env, const char *name, void *value) {
   hash_table_insert(env->symbols, name, value);
 }
 
-void env_set(environment *env, const char *name, struct obj_t *value) {
+void env_set(environment *env, const char *name, void *value) {
   environment *current = env;
   while (current) {
     if (hash_table_has(current->symbols, name)) {
