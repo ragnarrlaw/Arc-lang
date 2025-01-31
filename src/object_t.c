@@ -1,4 +1,6 @@
 #include "object_t.h"
+#include "ast.h"
+#include "environment.h"
 #include "error_t.h"
 #include "util_error.h"
 #include <stdio.h>
@@ -39,6 +41,13 @@ struct obj_t *object_t_init(enum OBJECT_TYPE type) {
   case OBJECT_ERROR:
     v->err_value = init_error_t();
     break;
+  case OBJECT_FUNCTION: {
+    v->function_value.blk_stmts = NULL;
+    v->function_value.env = NULL;
+    v->function_value.param_capacity = 0;
+    v->function_value.param_count = 0;
+    v->function_value.parameters = 0;
+  }; break;
   default: {
     free(v);
     v = NULL;
@@ -56,7 +65,21 @@ void object_t_free(struct obj_t *v) {
       break;
     case OBJECT_ERROR: {
       free_error_t(v->err_value);
-    }
+    }; break;
+    case OBJECT_FUNCTION: {
+      if (v->function_value.parameters) {
+        for (size_t i = 0; i < v->function_value.param_count; i++) {
+          ast_identifier_free(v->function_value.parameters[i]);
+        }
+        free(v->function_value.parameters);
+      }
+      if (v->function_value.blk_stmts) {
+        ast_block_statement_free(v->function_value.blk_stmts);
+      }
+      if (v->function_value.env) {
+        env_free(v->function_value.env);
+      }
+    }; break;
     default:
       break;
     }

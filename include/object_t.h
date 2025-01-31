@@ -1,6 +1,7 @@
 #ifndef OBJECT_T_H
 #define OBJECT_T_H
 
+#include "ast.h"
 #include "error_t.h"
 #include "string_t.h"
 #include <stdbool.h>
@@ -16,11 +17,11 @@ enum OBJECT_TYPE {
   OBJECT_BOOL,
   OBJECT_CHAR,
   OBJECT_SENTINEL, // basically a null value
+  OBJECT_FUNCTION,
   OBJECT_RETURN,
 };
 
 struct obj_t {
-
   struct obj_t *gc_next;
   bool marked;
   enum OBJECT_TYPE type;
@@ -44,6 +45,14 @@ struct obj_t {
     } sentinel; // basically a null value
 
     struct error_t *err_value;
+
+    struct {
+      struct identifier **parameters;
+      size_t param_count;
+      size_t param_capacity;
+      struct block_statement *blk_stmts;
+      struct environment *env;
+    } function_value;
   };
 };
 
