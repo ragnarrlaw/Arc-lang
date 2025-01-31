@@ -147,11 +147,18 @@ struct token *lexer_next_token(struct lexer *l) {
     t = lexer_punctuation(l);
   } else if (l->current_char == 0) {
     l->current_state = STATE_EOF;
-    t = token_init(END_OF_FILE, l->position, 0, l->line, l->column, l->line_start_pos);
+    t = token_init(END_OF_FILE, l->position, 0, l->line, l->column,
+                   l->line_start_pos);
   } else {
     t = lexer_error(l, l->position, 1);
   }
-  token_pool_push(l->pool, t);
+  if (t->type != ASTERISK && t->type != SLASH && t->type != MOD &&
+      t->type != PLUS && t->type != MINUS && t->type != EQUAL &&
+      t->type != LT && t->type != GT && t->type != LT_EQ && t->type != GT_EQ &&
+      t->type != BANG && t->type != EQ_EQ && t->type != NOT_EQ &&
+      t->type != AND && t->type != OR && t->type != INC && t->type != DEC) {
+    token_pool_push(l->pool, t);
+  }
   return t;
 }
 
@@ -186,7 +193,7 @@ struct token *lexer_indent_or_key(struct lexer *l) {
   if (len == 3 && strncmp(start, "let", len) == 0) {
     return token_init(LET, start, len, line, column, l->line_start_pos);
   } else if (len == 2 && strncmp(start, "fn", len) == 0) {
-    return token_init(FUNCTION, start, len, line, column,l->line_start_pos);
+    return token_init(FUNCTION, start, len, line, column, l->line_start_pos);
   } else if (len == 5 && strncmp(start, "match", len) == 0) {
     return token_init(MATCH, start, len, line, column, l->line_start_pos);
   } else if (len == 4 && strncmp(start, "case", len) == 0) {
