@@ -615,6 +615,8 @@ struct expression *parser_parse_unary_operator(struct parser *p) {
     return NULL;
   }
   expr->prefix_expr.op = p->current_token;
+  expr->prefix_expr.op_str =
+      strndup(p->current_token->literal, p->current_token->literal_len);
   struct OP_POWER b_pr = parser_prefix_binding_power(p->current_token->type);
   parser_next_token(p);
   expr->prefix_expr.right = parser_parse_expr_bp(p, b_pr.rbp);
@@ -638,6 +640,8 @@ struct expression *parser_parse_binary_operator(struct parser *p,
   }
   expr->infix_expr.left = left;
   expr->infix_expr.op = p->current_token;
+  expr->infix_expr.op_str =
+      strndup(p->current_token->literal, p->current_token->literal_len);
 
   struct OP_POWER precedence =
       parser_infix_binding_power(p->current_token->type);
@@ -659,6 +663,8 @@ struct expression *parser_parse_postfix_operator(struct parser *p,
   }
   expr->postfix_expr.left = left;
   expr->postfix_expr.op = p->current_token;
+  expr->postfix_expr.op_str =
+      strndup(p->current_token->literal, p->current_token->literal_len);
   return expr;
 }
 
@@ -917,7 +923,7 @@ param_list_t parser_parse_fn_parameters(struct parser *p) {
 
   parser_next_token(p);
 
-  struct identifier *ident = malloc(sizeof(struct identifier));
+  struct identifier *ident = ast_identifier_init();
   if (!ident) {
     ERROR_LOG("error while allocating memory\n");
     free(params.params);
@@ -925,6 +931,7 @@ param_list_t parser_parse_fn_parameters(struct parser *p) {
     return params;
   }
   ident->token = p->current_token;
+  ident->id = strndup(p->current_token->literal, p->current_token->literal_len);
   params.params[params.count++] = ident;
 
   for (; parser_next_token_is(p, COMMA);) {
@@ -959,6 +966,8 @@ param_list_t parser_parse_fn_parameters(struct parser *p) {
       params.capacity = new_capacity;
     }
     ident->token = p->current_token;
+    ident->id =
+        strndup(p->current_token->literal, p->current_token->literal_len);
     params.params[params.count++] = ident;
   }
   if (!parser_expect_next_token(p, RPAREN)) {
