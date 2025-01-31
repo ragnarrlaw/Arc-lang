@@ -47,11 +47,11 @@ struct obj_t {
     struct error_t *err_value;
 
     struct {
+      struct environment *env;
       struct identifier **parameters;
       size_t param_count;
       size_t param_capacity;
       struct block_statement *blk_stmts;
-      struct environment *env;
     } function_value;
   };
 };
