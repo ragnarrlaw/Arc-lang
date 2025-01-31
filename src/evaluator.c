@@ -5,7 +5,10 @@
 #include "gc.h"
 #include "object_t.h"
 #include "token.h"
+#include "util_error.h"
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // clang-format off
@@ -26,8 +29,12 @@ struct obj_t *evaluate_postfix_expr(struct token *, struct obj_t *);
 
 struct obj_t *evaluate_identifier_expr(struct environment *env, char *, struct token *);
 
+struct obj_t **evaluate_expressions(struct environment *env, struct expression **, size_t);
+
 struct obj_t *evaluate_block_statements(struct environment *env, struct block_statement *);
 struct obj_t *evaluate_if_expression(struct environment *env, struct expression *);
+struct obj_t *evaluate_fn_expression(struct environment *env, struct expression *);
+struct obj_t *evaluate_fn_call_expression(struct environment *env, struct expression *);
 
 struct obj_t *evaluate_prefix_bang_operator_expr(struct token*, struct obj_t *);
 struct obj_t *evaluate_prefix_minus_operator_expr(struct token*, struct obj_t *);
@@ -112,9 +119,35 @@ struct obj_t *evaluate_expression(struct environment *env,
   case EXPR_CONDITIONAL: {
     return evaluate_if_expression(env, expr);
   };
+  case EXPR_FUNCTION: {
+    return evaluate_fn_expression(env, expr);
+  }; break;
+  case EXPR_FUNCTION_CALL: {
+    return evaluate_fn_call_expression(env, expr);
+  }; break;
   default:
     return (struct obj_t *)&OBJ_SENTINEL;
   }
+}
+
+struct obj_t **evaluate_expressions(struct environment *env,
+                                    struct expression **exprs,
+                                    size_t expr_count) {
+  struct obj_t **results =
+      (struct obj_t **)malloc(sizeof(struct obj_t *) * expr_count);
+  if (!results) {
+    ERROR_LOG("error while allocating memory\n");
+    return NULL;
+  }
+  for (size_t i = 0; i < expr_count; i++) {
+    struct obj_t *result = evaluate_expression(env, exprs[i]);
+    if (has_error(result)) {
+      results[0] = result;
+      return results;
+    }
+    results[i] = result;
+  }
+  return results;
 }
 
 struct obj_t *evaluate_statements(struct environment *env,
@@ -146,6 +179,7 @@ struct obj_t *evaluate_let_statement(struct environment *env,
 
 struct obj_t *evaluate_block_statements(struct environment *env,
                                         struct block_statement *block) {
+
   if (block) {
     struct obj_t *result;
     for (size_t i = 0; i < block->statement_count; i++) {
@@ -192,6 +226,77 @@ struct obj_t *evaluate_if_expression(struct environment *env,
     } else {
       return (struct obj_t *)&OBJ_SENTINEL;
     }
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_fn_expression(struct environment *parent,
+                                     struct expression *expr) {
+  if (expr) {
+    struct obj_t *obj = gc_alloc(OBJECT_FUNCTION);
+    if (!obj) {
+      return (struct obj_t *)&OBJ_SENTINEL;
+    }
+    obj->function_value.param_capacity = expr->function.param_capacity;
+    obj->function_value.param_count = expr->function.param_count;
+    obj->function_value.parameters = expr->function.parameters;
+    obj->function_value.blk_stmts = expr->function.body;
+    return obj;
+  }
+  return (struct obj_t *)&OBJ_SENTINEL;
+}
+
+struct obj_t *evaluate_fn_call_expression(struct environment *env,
+                                          struct expression *expr) {
+  if (expr) {
+    struct obj_t *function =
+        evaluate_expression(env, expr->function_call.function);
+    if (has_error(function)) {
+      return function;
+    }
+    if (function->type != OBJECT_FUNCTION) {
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
+      error_t_format_err(err->err_value, expr->function_call.token,
+                         "invalid function call",
+                         "only functions can be called");
+      return err;
+    }
+
+    // evaluate the arguments
+    struct obj_t **args = evaluate_expressions(
+        env, expr->function_call.arguments, expr->function_call.arg_count);
+    if (!args) {
+      return (struct obj_t *)&OBJ_SENTINEL;
+    }
+    for (size_t i = 0; i < expr->function_call.arg_count; i++) {
+      if (has_error(args[i])) {
+        free(args);
+        return args[i];
+      } else {
+      }
+    }
+
+    struct environment *child = env_init();
+    if (!child) {
+      free(args);
+      return (struct obj_t *)&OBJ_SENTINEL;
+    }
+    child->parent = env;
+
+    function->function_value.env = child;
+
+    for (size_t i = 0; i < function->function_value.param_count; i++) {
+      env_define(child, function->function_value.parameters[i]->id, args[i]);
+    }
+
+    struct obj_t *result =
+        evaluate_block_statements(child, function->function_value.blk_stmts);
+    if (result && result->type == OBJECT_RETURN) {
+      return result->return_value.value;
+    }
+
+    free(args);
+    return result;
   }
   return (struct obj_t *)&OBJ_SENTINEL;
 }
