@@ -65,6 +65,7 @@ struct literal {
  * each identifier can be associated with a type
  */
 struct identifier {
+  char *id;
   struct token *token;
 };
 
@@ -121,17 +122,20 @@ struct expression {
 
     struct {
       struct token *op;
+      char *op_str;
       struct expression *right;
     } prefix_expr;
 
     struct {
       struct expression *left;
       struct token *op;
+      char *op_str;
       struct expression *right;
     } infix_expr;
 
     struct {
       struct expression *left;
+      char *op_str;
       struct token *op;
     } postfix_expr;
 
@@ -141,6 +145,7 @@ struct expression {
 
     struct {
       struct token *token;
+      char *fn_call_token;
       // clang-format off
       struct expression *function; // can be  a function literal or an identifier
       // clang-format on
@@ -182,6 +187,7 @@ struct statement {
     struct {
       struct token *token; // fn token
       struct token *name;  // name token
+      char *fn_name;
       struct identifier **params;
       size_t params_count;
       size_t params_capacity;

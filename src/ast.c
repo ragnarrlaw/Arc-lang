@@ -32,6 +32,7 @@ struct statement *ast_statement_init(enum STATEMENT_TYPE type) {
   case STMT_FUNCTION_DEF: {
     s->fn_def_stmt.token = NULL;
     s->fn_def_stmt.name = NULL;
+    s->fn_def_stmt.fn_name = NULL;
     s->fn_def_stmt.params = NULL;
     s->fn_def_stmt.params_count = 0;
     s->fn_def_stmt.params_capacity = 0;
@@ -64,6 +65,7 @@ void ast_statement_free(struct statement *s) {
         free(s->fn_def_stmt.params);
       }
       ast_block_statement_free(s->fn_def_stmt.body);
+      free(s->fn_def_stmt.fn_name);
     }; break;
     }
     free(s);
@@ -92,14 +94,17 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
   case EXPR_INFIX: {
     expr->infix_expr.left = NULL;
     expr->infix_expr.op = NULL;
+    expr->infix_expr.op_str = NULL;
     expr->infix_expr.right = NULL;
   }; break;
   case EXPR_PREFIX: {
     expr->prefix_expr.op = NULL;
+    expr->prefix_expr.op_str = NULL;
     expr->prefix_expr.right = NULL;
   }; break;
   case EXPR_POSTFIX: {
     expr->postfix_expr.left = NULL;
+    expr->postfix_expr.op_str = NULL;
     expr->postfix_expr.op = NULL;
   }; break;
   case EXPR_CONDITIONAL: {
@@ -117,6 +122,7 @@ struct expression *ast_expression_init(enum EXPRESSION_TYPE e) {
   }; break;
   case EXPR_FUNCTION_CALL: {
     expr->function_call.token = NULL;
+    expr->function_call.fn_call_token = NULL;
     expr->function_call.function = NULL;
     expr->function_call.arguments = NULL;
   }; break;
@@ -138,13 +144,25 @@ void ast_expression_free(struct expression *e) {
       e->identifier_expr.identifier = NULL;
     }; break;
     case EXPR_PREFIX: {
+      if (e->prefix_expr.op_str)
+        free(e->prefix_expr.op_str);
+      if (e->prefix_expr.op)
+        free(e->prefix_expr.op);
       ast_expression_free(e->prefix_expr.right);
     }; break;
     case EXPR_INFIX: {
       ast_expression_free(e->infix_expr.left);
+      if (e->infix_expr.op_str)
+        free(e->infix_expr.op_str);
+      if (e->infix_expr.op)
+        free(e->infix_expr.op);
       ast_expression_free(e->infix_expr.right);
     }; break;
     case EXPR_POSTFIX: {
+      if (e->postfix_expr.op_str)
+        free(e->postfix_expr.op_str);
+      if (e->postfix_expr.op)
+        free(e->postfix_expr.op);
       ast_expression_free(e->postfix_expr.left);
     }; break;
     case EXPR_CONDITIONAL: {
@@ -153,11 +171,23 @@ void ast_expression_free(struct expression *e) {
       ast_block_statement_free(e->conditional.alternative);
     }; break;
     case EXPR_FUNCTION: {
+      /**
+       * NOTE: freeing the block statements and the identifiers
+       * in here when the AST is freed, will remove the references
+       * from the environment as well. Enable this when using the
+       * ast for testing purposes and not for the actual interpreter
+       *
+       * IMPORTANT: also note that the references are freed in the object_t.c
+       * when the objects are freed by the GC. This is done due to the nature
+       * of function blocks, should be stored in the environment
+       */
+      /*
       ast_block_statement_free(e->function.body);
       for (size_t i = 0; i < e->function.param_count; i++)
         ast_identifier_free(e->function.parameters[i]);
       free(e->function.parameters);
       e->function.parameters = NULL;
+       */
     }; break;
     case EXPR_FUNCTION_CALL: {
       ast_expression_free(e->function_call.function);
@@ -206,11 +236,14 @@ struct identifier *ast_identifier_init() {
     return NULL;
   }
   ident->token = NULL;
+  ident->id = NULL;
   return ident;
 }
 
 void ast_identifier_free(struct identifier *ident) {
   if (ident) {
+    if (ident->id)
+      free(ident->id);
     free(ident);
   }
   ident = NULL;
