@@ -1,5 +1,6 @@
 #include "util_repr.h"
 #include "object_t.h"
+#include "token.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -19,9 +20,7 @@ void t_stmt_repr(struct statement *stmt, string_t *str) {
     string_t_ncat(str, ";", 1);
   }; break;
   case STMT_RETURN: {
-    string_t_ncat(str, (char *)stmt->return_stmt.token->literal,
-                  stmt->return_stmt.token->literal_len);
-    string_t_ncat(str, " ", 1);
+    string_t_cat(str, "return ");
     t_expr_repr(stmt->return_stmt.value, str);
     string_t_ncat(str, ";", 1);
   }; break;
@@ -86,34 +85,29 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     }
   }; break;
   case EXPR_IDENTIFIER: {
-    string_t_ncat(str, (char *)expr->identifier_expr.token->literal,
-                  expr->identifier_expr.token->literal_len);
+    string_t_cat(str, expr->identifier_expr.identifier);
   }; break;
   case EXPR_PREFIX: {
     string_t_ncat(str, "(", 1);
-    string_t_ncat(str, (char *)expr->prefix_expr.op->literal,
-                  expr->prefix_expr.op->literal_len);
+    string_t_cat(str, expr->prefix_expr.op_str);
     t_expr_repr(expr->prefix_expr.right, str);
     string_t_ncat(str, ")", 1);
   }; break;
   case EXPR_INFIX: {
     string_t_ncat(str, "(", 1);
     t_expr_repr(expr->infix_expr.left, str);
-    string_t_ncat(str, (char *)expr->infix_expr.op->literal,
-                  expr->infix_expr.op->literal_len);
+    string_t_cat(str, expr->infix_expr.op_str);
     t_expr_repr(expr->infix_expr.right, str);
     string_t_ncat(str, ")", 1);
   }; break;
   case EXPR_POSTFIX: {
     string_t_ncat(str, "(", 1);
     t_expr_repr(expr->postfix_expr.left, str);
-    string_t_ncat(str, (char *)expr->postfix_expr.op->literal,
-                  expr->postfix_expr.op->literal_len);
+    string_t_cat(str, expr->postfix_expr.op_str);
     string_t_ncat(str, ")", 1);
   }; break;
   case EXPR_CONDITIONAL: {
-    string_t_ncat(str, (char *)expr->conditional.token->literal,
-                  expr->conditional.token->literal_len);
+    string_t_cat(str, "if");
     string_t_ncat(str, "(", 1);
     t_expr_repr(expr->conditional.condition, str);
     string_t_ncat(str, ")", 1);
@@ -127,8 +121,7 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     }
   }; break;
   case EXPR_FUNCTION: {
-    string_t_ncat(str, (char *)expr->function.token->literal,
-                  expr->function.token->literal_len);
+    string_t_cat(str, "fn");
     string_t_ncat(str, "(", 1);
     for (size_t i = 0; i < expr->function.param_count; i++) {
       string_t_ncat(str, (char *)expr->function.parameters[i]->token->literal,
@@ -141,8 +134,7 @@ void t_expr_repr(struct expression *expr, string_t *str) {
     string_t_ncat(str, "}", 1);
   }; break;
   case EXPR_FUNCTION_CALL: {
-    string_t_ncat(str, (char *)expr->function_call.token->literal,
-                  expr->function_call.token->literal_len);
+    string_t_ncat(str, "(", 1);
     t_expr_repr(expr->function_call.function, str);
     string_t_ncat(str, "(", 1);
     for (size_t i = 0; i < expr->function_call.arg_count; i++) {
@@ -203,6 +195,19 @@ void t_object_repr(struct obj_t *object, string_t *str) {
   case OBJECT_RETURN: {
     string_t_cat(str, "<return value>(");
     t_object_repr(object->return_value.value, str);
+    string_t_cat(str, ")");
+  }; break;
+  case OBJECT_FUNCTION: {
+    string_t_cat(str, "<function>(");
+    string_t_cat(str, "<parameters>(");
+    for (size_t i = 0; i < object->function_value.param_count; i++) {
+      string_t_cat(str, (char *)object->function_value.parameters[i]->id);
+      string_t_cat(str, ",");
+    }
+    string_t_cat(str, ")");
+    string_t_cat(str, "{");
+    t_block_stmt_repr(object->function_value.blk_stmts, str);
+    string_t_cat(str, "}");
     string_t_cat(str, ")");
   }; break;
   case OBJECT_ERROR: {
