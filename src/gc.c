@@ -38,10 +38,12 @@ static void gc_mark(struct obj_t *obj) {
             gc_mark_environment(obj->closure.env);
             break;
      */
+  case OBJECT_FUNCTION: {
+    gc_mark_environment(obj->function_value.env);
+  }; break;
   case OBJECT_RETURN: {
     gc_mark(obj->return_value.value);
   }; break;
-
   default: {
   }; break;
   }
