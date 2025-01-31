@@ -54,7 +54,7 @@ void gc_mark_environment(struct environment *env) {
       hash_table_iterator it = hash_table_iterate(env->symbols);
       const char *key;
       struct obj_t *value;
-      while (hash_table_next(&it, &key, &value)) {
+      while (hash_table_next(&it, &key, (void **)&value)) {
         gc_mark(value);
       }
       current_env = current_env->parent;
