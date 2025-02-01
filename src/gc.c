@@ -3,30 +3,43 @@
 #include "object_t.h"
 #include <stdio.h>
 
-static void gc_mark(struct obj_t *obj);
-static void gc_sweep();
+// Static objects
+static const struct obj_t OBJ_SENTINEL = {
+    .type = OBJECT_SENTINEL, .gc_next = NULL, .marked = false};
+static const struct obj_t OBJ_TRUE = {
+    .type = OBJECT_BOOL, .bool_value = true, .gc_next = NULL, .marked = false};
+static const struct obj_t OBJ_FALSE = {
+    .type = OBJECT_BOOL, .bool_value = false, .gc_next = NULL, .marked = false};
 
-// starting point of all objects tracked by gc
+// Starting point of all objects tracked by GC
 static struct obj_t *gc_object_list = NULL;
 
 struct obj_t *gc_alloc(enum OBJECT_TYPE type) {
-  struct obj_t *obj = object_t_init(type);
-  if (!obj) {
-    return NULL;
+  if (type == OBJECT_SENTINEL) {
+    return (struct obj_t *)&OBJ_SENTINEL;
+  } else if (type == OBJECT_BOOL_TRUE) {
+    return (struct obj_t *)&OBJ_TRUE;
+  } else if (type == OBJECT_BOOL_FALSE) {
+    return (struct obj_t *)&OBJ_FALSE;
+  } else {
+    struct obj_t *obj = object_t_init(type);
+    if (!obj) {
+      return NULL;
+    }
+    obj->gc_next = gc_object_list;
+    gc_object_list = obj;
+    return obj;
   }
-  obj->gc_next = gc_object_list;
-  gc_object_list = obj;
-  return obj;
 }
 
 static void gc_mark(struct obj_t *obj) {
-  if (!obj || obj->marked) {
+  if (!obj || obj->marked || obj->type == OBJECT_SENTINEL ||
+      obj->type == OBJECT_BOOL) {
     return;
   }
   obj->marked = true;
 
   // recursively mark child objects
-  // for lists, closures, return objects, etc.
   switch (obj->type) {
     /*
             case OBJECT_LIST:
@@ -67,8 +80,9 @@ void gc_mark_environment(struct environment *env) {
 static void gc_sweep() {
   struct obj_t **curr = &gc_object_list;
   while (*curr) {
-    if (!(*curr)->marked) {
-      // unmarked objects are considered as unused -> free any unused objects
+    if (!(*curr)->marked && (*curr)->type != OBJECT_SENTINEL &&
+        (*curr)->type != OBJECT_BOOL) {
+      // unmarked objects are considered unused -> free them
       struct obj_t *unreached = *curr;
       *curr = unreached->gc_next;
       object_t_free(unreached);
