@@ -125,7 +125,7 @@ int string_t_ncmp(struct string_t *lhs, char *rhs, size_t len) {
 
 void repr_string_t(struct string_t *s) {
   if (s && s->str) {
-    printf("length: %ld capacity: %ld \nstr: ", s->len, s->cap);
+    // printf("length: %ld capacity: %ld \nstr: ", s->len, s->cap);
     for (size_t i = 0; i < s->len; i++) {
       printf("%c", s->str[i]);
     }
