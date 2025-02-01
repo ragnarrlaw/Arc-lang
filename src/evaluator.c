@@ -13,34 +13,30 @@
 
 // clang-format off
 
-static const struct obj_t OBJ_SENTINEL = {.type = OBJECT_SENTINEL, .gc_next = NULL, .marked = false};
-static const struct obj_t OBJ_TRUE = {.type = OBJECT_BOOL, .bool_value = true, .gc_next = NULL, .marked = false};
-static const struct obj_t OBJ_FALSE = {.type = OBJECT_BOOL, .bool_value = false, .gc_next = NULL, .marked = false};
-
-struct obj_t *evaluate_statements(struct environment *env, struct statement **, size_t);
-struct obj_t *evaluate_statement(struct environment *env, struct statement *);
-struct obj_t *evaluate_let_statement(struct environment *env, struct statement *);
-struct obj_t *evaluate_return_statement(struct environment *env, struct statement *);
+struct obj_t *evaluate_statements(struct environment *, struct statement **, size_t);
+struct obj_t *evaluate_statement(struct environment *, struct statement *);
+struct obj_t *evaluate_let_statement(struct environment *, struct statement *);
+struct obj_t *evaluate_return_statement(struct environment *, struct statement *);
 
 struct obj_t *evaluate_literal_expr(struct expression *);
-struct obj_t *evaluate_prefix_expr(struct token *, struct obj_t *);
+struct obj_t *evaluate_prefix_expr(struct environment *, struct token *, struct expression *);
 struct obj_t *evaluate_infix_expr(struct token *, struct obj_t *, struct obj_t *);
-struct obj_t *evaluate_postfix_expr(struct token *, struct obj_t *);
+struct obj_t *evaluate_postfix_expr(struct environment *, struct token *, struct expression *);
 
-struct obj_t *evaluate_identifier_expr(struct environment *env, char *, struct token *);
+struct obj_t *evaluate_identifier_expr(struct environment *, char *, struct token *);
 
-struct obj_t **evaluate_expressions(struct environment *env, struct expression **, size_t);
+struct obj_t **evaluate_expressions(struct environment *, struct expression **, size_t);
 
-struct obj_t *evaluate_block_statements(struct environment *env, struct block_statement *);
-struct obj_t *evaluate_if_expression(struct environment *env, struct expression *);
-struct obj_t *evaluate_fn_expression(struct environment *env, struct expression *);
-struct obj_t *evaluate_fn_call_expression(struct environment *env, struct expression *);
+struct obj_t *evaluate_block_statements(struct environment *, struct block_statement *);
+struct obj_t *evaluate_if_expression(struct environment *, struct expression *);
+struct obj_t *evaluate_fn_expression(struct environment *, struct expression *);
+struct obj_t *evaluate_fn_call_expression(struct environment *, struct expression *);
 
 struct obj_t *evaluate_prefix_bang_operator_expr(struct token*, struct obj_t *);
 struct obj_t *evaluate_prefix_minus_operator_expr(struct token*, struct obj_t *);
 struct obj_t *evaluate_prefix_plus_operator_expr(struct token*, struct obj_t *);
-struct obj_t *evaluate_prefix_increment_operator_expr(struct token*, struct obj_t *);
-struct obj_t *evaluate_prefix_decrement_operator_expr(struct token*, struct obj_t *);
+struct obj_t *evaluate_prefix_increment_operator_expr(struct environment *, struct token*, struct expression *);
+struct obj_t *evaluate_prefix_decrement_operator_expr(struct environment *, struct token*, struct expression *);
 
 struct obj_t *evaluate_infix_integer_expr(struct token *, struct obj_t *, struct obj_t *);
 struct obj_t *evaluate_infix_boolean_expr(struct token *, struct obj_t *, struct obj_t *);
@@ -59,7 +55,7 @@ bool has_error(struct obj_t *);
 struct obj_t *evaluate_program(struct environment *env,
                                struct program *program) {
   if (!program) {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return gc_alloc(OBJECT_SENTINEL);
   }
   return evaluate_statements(env, program->statements,
                              program->statement_count);
@@ -82,13 +78,13 @@ struct obj_t *evaluate_statement(struct environment *env,
     }; break;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_expression(struct environment *env,
                                   struct expression *expr) {
   if (!expr) {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return gc_alloc(OBJECT_SENTINEL);
   }
   switch (expr->type) {
   case EXPR_LITERAL: {
@@ -99,11 +95,8 @@ struct obj_t *evaluate_expression(struct environment *env,
                                     expr->identifier_expr.token);
   }; break;
   case EXPR_PREFIX: {
-    struct obj_t *right = evaluate_expression(env, expr->prefix_expr.right);
-    if (has_error(right)) {
-      return right;
-    }
-    return evaluate_prefix_expr(expr->prefix_expr.op, right);
+    return evaluate_prefix_expr(env, expr->prefix_expr.op,
+                                expr->prefix_expr.right);
   };
   case EXPR_INFIX: {
     struct obj_t *left = evaluate_expression(env, expr->infix_expr.left);
@@ -116,6 +109,10 @@ struct obj_t *evaluate_expression(struct environment *env,
     }
     return evaluate_infix_expr(expr->infix_expr.op, left, right);
   };
+  case EXPR_POSTFIX: {
+    return evaluate_postfix_expr(env, expr->postfix_expr.op,
+                                 expr->postfix_expr.left);
+  }; break;
   case EXPR_CONDITIONAL: {
     return evaluate_if_expression(env, expr);
   };
@@ -126,7 +123,7 @@ struct obj_t *evaluate_expression(struct environment *env,
     return evaluate_fn_call_expression(env, expr);
   }; break;
   default:
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return gc_alloc(OBJECT_SENTINEL);
   }
 }
 
@@ -174,7 +171,7 @@ struct obj_t *evaluate_let_statement(struct environment *env,
     env_define(env, stmt->let_stmt.ident, value);
     return value;
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_block_statements(struct environment *env,
@@ -192,7 +189,7 @@ struct obj_t *evaluate_block_statements(struct environment *env,
     }
     return result;
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_return_statement(struct environment *env,
@@ -208,7 +205,7 @@ struct obj_t *evaluate_return_statement(struct environment *env,
       return object;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_if_expression(struct environment *env,
@@ -224,10 +221,10 @@ struct obj_t *evaluate_if_expression(struct environment *env,
     } else if (expr->conditional.alternative) {
       return evaluate_block_statements(env, expr->conditional.alternative);
     } else {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_fn_expression(struct environment *env,
@@ -235,7 +232,7 @@ struct obj_t *evaluate_fn_expression(struct environment *env,
   if (expr) {
     struct obj_t *obj = gc_alloc(OBJECT_FUNCTION);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->function_value.env = env;
     obj->function_value.param_capacity = expr->function.param_capacity;
@@ -244,7 +241,7 @@ struct obj_t *evaluate_fn_expression(struct environment *env,
     obj->function_value.blk_stmts = expr->function.body;
     return obj;
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_fn_call_expression(struct environment *env,
@@ -267,7 +264,7 @@ struct obj_t *evaluate_fn_call_expression(struct environment *env,
     struct obj_t **args = evaluate_expressions(
         env, expr->function_call.arguments, expr->function_call.arg_count);
     if (!args) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     for (size_t i = 0; i < expr->function_call.arg_count; i++) {
       if (has_error(args[i])) {
@@ -280,7 +277,7 @@ struct obj_t *evaluate_fn_call_expression(struct environment *env,
     struct environment *child = env_init();
     if (!child) {
       free(args);
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     child->parent = function->function_value.env;
 
@@ -297,27 +294,27 @@ struct obj_t *evaluate_fn_call_expression(struct environment *env,
     free(args);
     return result;
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_fn_def_stmt(struct expression *expr) {
   // TODO: complete function
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_literal_expr(struct expression *expr) {
   if (!expr) {
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return gc_alloc(OBJECT_SENTINEL);
   }
   switch (expr->literal.literal_type) {
   case LITERAL_BOOL: {
-    return expr->literal.value.bool_value ? (struct obj_t *)&OBJ_TRUE
-                                          : (struct obj_t *)&OBJ_FALSE;
+    return expr->literal.value.bool_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                          : gc_alloc(OBJECT_BOOL_FALSE);
   };
   case LITERAL_INT: {
     struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->int_value = expr->literal.value.int_value;
     return obj;
@@ -325,7 +322,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
   case LITERAL_FLOAT: {
     struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->double_value = expr->literal.value.float_value;
     return obj;
@@ -333,7 +330,7 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
   case LITERAL_STRING: {
     struct obj_t *obj = gc_alloc(OBJECT_STRING);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->string_value.data =
         strndup(expr->literal.value.string_literal->value,
@@ -344,30 +341,39 @@ struct obj_t *evaluate_literal_expr(struct expression *expr) {
   case LITERAL_CHAR: {
     struct obj_t *obj = gc_alloc(OBJECT_CHAR);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->rune_value = expr->literal.value.char_value;
     return obj;
   };
   default:
-    return (struct obj_t *)&OBJ_SENTINEL;
+    return gc_alloc(OBJECT_SENTINEL);
   }
 }
 
-struct obj_t *evaluate_prefix_expr(struct token *operator,
-                                   struct obj_t * right) {
+struct obj_t *evaluate_prefix_expr(struct environment *env,
+                                   struct token *operator,
+                                   struct expression * right) {
   switch (operator->type) {
   case BANG: {
-    return evaluate_prefix_bang_operator_expr(operator, right);
+    struct obj_t *rhs = evaluate_expression(env, right);
+    if (has_error(rhs)) {
+      return rhs;
+    }
+    return evaluate_prefix_bang_operator_expr(operator, rhs);
   }
   case MINUS: {
-    return evaluate_prefix_minus_operator_expr(operator, right);
+    struct obj_t *rhs = evaluate_expression(env, right);
+    if (has_error(rhs)) {
+      return rhs;
+    }
+    return evaluate_prefix_minus_operator_expr(operator, rhs);
   }
   case INC: {
-    return evaluate_prefix_increment_operator_expr(operator, right);
+    return evaluate_prefix_increment_operator_expr(env, operator, right);
   }
   case DEC: {
-    return evaluate_prefix_decrement_operator_expr(operator, right);
+    return evaluate_prefix_decrement_operator_expr(env, operator, right);
   }
   default: {
     struct obj_t *err = gc_alloc(OBJECT_ERROR);
@@ -381,14 +387,14 @@ struct obj_t *evaluate_prefix_expr(struct token *operator,
 
 struct obj_t *evaluate_prefix_bang_operator_expr(struct token *operator,
                                                  struct obj_t * right) {
-  if (right == &OBJ_SENTINEL) {
-    return (struct obj_t *)&OBJ_TRUE;
-  } else if (right == &OBJ_TRUE) {
-    return (struct obj_t *)&OBJ_FALSE;
-  } else if (right == &OBJ_FALSE) {
-    return (struct obj_t *)&OBJ_TRUE;
+  if (right == gc_alloc(OBJECT_SENTINEL)) {
+    return gc_alloc(OBJECT_BOOL_TRUE);
+  } else if (right == gc_alloc(OBJECT_BOOL_TRUE)) {
+    return gc_alloc(OBJECT_BOOL_FALSE);
+  } else if (right == gc_alloc(OBJECT_BOOL_FALSE)) {
+    return gc_alloc(OBJECT_BOOL_TRUE);
   } else {
-    return (struct obj_t *)&OBJ_FALSE;
+    return gc_alloc(OBJECT_BOOL_FALSE);
   }
 }
 
@@ -397,14 +403,14 @@ struct obj_t *evaluate_prefix_minus_operator_expr(struct token *operator,
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->int_value = -right->int_value;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
     struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->double_value = -right->double_value;
     return obj;
@@ -422,14 +428,14 @@ struct obj_t *evaluate_prefix_plus_operator_expr(struct token *token,
   if (right->type == OBJECT_INT) {
     struct obj_t *obj = gc_alloc(OBJECT_INT);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->int_value = +right->int_value;
     return obj;
   } else if (right->type == OBJECT_DOUBLE) {
     struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
     if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+      return gc_alloc(OBJECT_SENTINEL);
     }
     obj->double_value = +right->double_value;
     return obj;
@@ -442,53 +448,91 @@ struct obj_t *evaluate_prefix_plus_operator_expr(struct token *token,
   }
 }
 
-struct obj_t *evaluate_prefix_increment_operator_expr(struct token *token,
-                                                      struct obj_t *right) {
-  if (right->type == OBJECT_INT) {
-    struct obj_t *obj = gc_alloc(OBJECT_INT);
-    if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+struct obj_t *evaluate_prefix_increment_operator_expr(
+    struct environment *env, struct token *token, struct expression *right) {
+  switch (right->type) {
+  case EXPR_IDENTIFIER: {
+    struct obj_t *res =
+        evaluate_identifier_expr(env, right->identifier_expr.identifier, token);
+    if (has_error(res)) {
+      return res;
     }
-    obj->int_value = right->int_value + 1;
-    return obj;
-  } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
-    if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+    if (res->type == OBJECT_INT) {
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
+      if (obj) {
+        obj->int_value = res->int_value;
+        res->int_value += 1;
+        return obj;
+      }
+    } else if (res->type == OBJECT_DOUBLE) {
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
+      if (obj) {
+        obj->double_value = res->double_value;
+        res->double_value += 1;
+        return obj;
+      }
+    } else {
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
+      error_t_format_err(
+          err->err_value, token,
+          "operation not permitted on non numerical identifiers",
+          "operation only permitted on integer or floating point "
+          "identifiers (variables)");
+      return err;
     }
-    obj->double_value = right->double_value + 1;
-    return obj;
-  } else {
+  }; break;
+  default: {
     struct obj_t *err = gc_alloc(OBJECT_ERROR);
-    error_t_format_err(
-        err->err_value, token, "invalid use of prefix operator",
-        "only numerical types can be used with prefix operator ++");
+    error_t_format_err(err->err_value, token,
+                       "operation not permitted on non-identifier expressions",
+                       NULL);
     return err;
+  }; break;
   }
 }
 
-struct obj_t *evaluate_prefix_decrement_operator_expr(struct token *operator,
-                                                      struct obj_t * right) {
-  if (right->type == OBJECT_INT) {
-    struct obj_t *obj = gc_alloc(OBJECT_INT);
-    if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+struct obj_t *evaluate_prefix_decrement_operator_expr(struct environment *env,
+                                                      struct token *operator,
+                                                      struct expression *
+                                                      right) {
+  switch (right->type) {
+  case EXPR_IDENTIFIER: {
+    struct obj_t *res = evaluate_identifier_expr(
+        env, right->identifier_expr.identifier, operator);
+    if (has_error(res)) {
+      return res;
     }
-    obj->int_value = right->int_value - 1;
-    return obj;
-  } else if (right->type == OBJECT_DOUBLE) {
-    struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
-    if (!obj) {
-      return (struct obj_t *)&OBJ_SENTINEL;
+    if (res->type == OBJECT_INT) {
+      struct obj_t *obj = gc_alloc(OBJECT_INT);
+      if (obj) {
+        obj->int_value = res->int_value;
+        res->int_value -= 1;
+        return obj;
+      }
+    } else if (res->type == OBJECT_DOUBLE) {
+      struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
+      if (obj) {
+        obj->double_value = res->double_value;
+        res->double_value -= 1;
+        return obj;
+      }
+    } else {
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
+      error_t_format_err(
+          err->err_value, operator,
+          "operation not permitted on non numerical identifiers",
+          "operation only permitted on integer or floating point "
+          "identifiers (variables)");
+      return err;
     }
-    obj->double_value = right->double_value - 1;
-    return obj;
-  } else {
+  }; break;
+  default: {
     struct obj_t *err = gc_alloc(OBJECT_ERROR);
-    error_t_format_err(
-        err->err_value, operator, "invalid use of prefix operator",
-        "only numerical types can be used with prefix operator --");
+    error_t_format_err(err->err_value, operator,
+                       "operation not permitted on non-identifier expressions",
+                       NULL);
     return err;
+  }; break;
   }
 }
 
@@ -511,7 +555,7 @@ struct obj_t *evaluate_infix_expr(struct token *operator, struct obj_t * left,
       return err;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_infix_integer_expr(struct token *operator,
@@ -548,7 +592,7 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
           return obj;
         } else {
           object_t_free(obj);
-          return (struct obj_t *)&OBJ_SENTINEL;
+          return gc_alloc(OBJECT_SENTINEL);
         }
       }
     }; break;
@@ -560,24 +604,24 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
       }
     }; break;
     case GT:
-      return left->int_value > right->int_value ? (struct obj_t *)&OBJ_TRUE
-                                                : (struct obj_t *)&OBJ_FALSE;
+      return left->int_value > right->int_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                                : gc_alloc(OBJECT_BOOL_FALSE);
     case GT_EQ:
-      return left->int_value >= right->int_value ? (struct obj_t *)&OBJ_TRUE
-                                                 : (struct obj_t *)&OBJ_FALSE;
+      return left->int_value >= right->int_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                                 : gc_alloc(OBJECT_BOOL_FALSE);
     case LT:
-      return left->int_value < right->int_value ? (struct obj_t *)&OBJ_TRUE
-                                                : (struct obj_t *)&OBJ_FALSE;
+      return left->int_value < right->int_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                                : gc_alloc(OBJECT_BOOL_FALSE);
     case LT_EQ:
-      return left->int_value <= right->int_value ? (struct obj_t *)&OBJ_TRUE
-                                                 : (struct obj_t *)&OBJ_FALSE;
+      return left->int_value <= right->int_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                                 : gc_alloc(OBJECT_BOOL_FALSE);
     case EQ_EQ:
-      return left->int_value == right->int_value ? (struct obj_t *)&OBJ_TRUE
-                                                 : (struct obj_t *)&OBJ_FALSE;
+      return left->int_value == right->int_value ? gc_alloc(OBJECT_BOOL_TRUE)
+                                                 : gc_alloc(OBJECT_BOOL_FALSE);
     case NOT_EQ:
       return left->double_value != right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     default: {
       struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
@@ -587,7 +631,7 @@ struct obj_t *evaluate_infix_integer_expr(struct token *operator,
     }; break;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_infix_boolean_expr(struct token *operator,
@@ -596,11 +640,13 @@ struct obj_t *evaluate_infix_boolean_expr(struct token *operator,
   if (left && right) {
     switch (operator->type) {
     case EQ_EQ:
-      return left->bool_value == right->bool_value ? (struct obj_t *)&OBJ_TRUE
-                                                   : (struct obj_t *)&OBJ_FALSE;
+      return left->bool_value == right->bool_value
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case NOT_EQ:
-      return left->bool_value != right->bool_value ? (struct obj_t *)&OBJ_TRUE
-                                                   : (struct obj_t *)&OBJ_FALSE;
+      return left->bool_value != right->bool_value
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     default: {
       struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
@@ -609,7 +655,7 @@ struct obj_t *evaluate_infix_boolean_expr(struct token *operator,
     }; break;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_infix_float_expr(struct token *operator,
@@ -651,28 +697,28 @@ struct obj_t *evaluate_infix_float_expr(struct token *operator,
     }; break;
     case GT:
       return left->double_value > right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case GT_EQ:
       return left->double_value >= right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case LT:
       return left->double_value < right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case LT_EQ:
       return left->double_value <= right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case EQ_EQ:
       return left->double_value == right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case NOT_EQ:
       return left->double_value != right->double_value
-                 ? (struct obj_t *)&OBJ_TRUE
-                 : (struct obj_t *)&OBJ_FALSE;
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     default: {
       struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
@@ -682,7 +728,7 @@ struct obj_t *evaluate_infix_float_expr(struct token *operator,
     }; break;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_infix_char_expr(struct token *operator,
@@ -691,11 +737,13 @@ struct obj_t *evaluate_infix_char_expr(struct token *operator,
   if (left && right) {
     switch (operator->type) {
     case EQ_EQ:
-      return left->rune_value == right->rune_value ? (struct obj_t *)&OBJ_TRUE
-                                                   : (struct obj_t *)&OBJ_FALSE;
+      return left->rune_value == right->rune_value
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     case NOT_EQ:
-      return left->rune_value != right->rune_value ? (struct obj_t *)&OBJ_TRUE
-                                                   : (struct obj_t *)&OBJ_FALSE;
+      return left->rune_value != right->rune_value
+                 ? gc_alloc(OBJECT_BOOL_TRUE)
+                 : gc_alloc(OBJECT_BOOL_FALSE);
     default: {
       struct obj_t *err = gc_alloc(OBJECT_ERROR);
       error_t_format_err(err->err_value, operator, "operator not found",
@@ -704,19 +752,91 @@ struct obj_t *evaluate_infix_char_expr(struct token *operator,
     }; break;
     }
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 struct obj_t *evaluate_infix_string_expr(struct token *operator,
                                          struct obj_t * left,
                                          struct obj_t *right) {
   if (left && right) {
   }
-  return (struct obj_t *)&OBJ_SENTINEL;
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
-struct obj_t *evaluate_postfix_expr(struct token *operator,
-                                    struct obj_t * left) {
-  return (struct obj_t *)&OBJ_SENTINEL;
+struct obj_t *evaluate_postfix_expr(struct environment *env,
+                                    struct token *operator,
+                                    struct expression * left) {
+
+  if (left) {
+    if (left->type == EXPR_IDENTIFIER) {
+      struct obj_t *res = evaluate_identifier_expr(
+          env, left->identifier_expr.identifier, operator);
+      if (has_error(res)) {
+        return res;
+      }
+      if (res->type == OBJECT_INT) {
+        switch (operator->type) {
+        case INC: {
+          struct obj_t *obj = gc_alloc(OBJECT_INT);
+          obj->int_value = res->int_value;
+          res->int_value += 1;
+          return obj;
+        }; break;
+        case DEC: {
+          struct obj_t *obj = gc_alloc(OBJECT_INT);
+          obj->int_value = res->int_value;
+          res->int_value -= 1;
+          return obj;
+        }; break;
+        default: {
+          struct obj_t *err = gc_alloc(OBJECT_ERROR);
+          error_t_format_err(
+              err->err_value, operator, "postfix operator cannot be found",
+              "increment(++) and decrement(--) operators are the only "
+              "postfix operators permitted");
+          return err;
+        }; break;
+        }
+      } else if (res->type == OBJECT_DOUBLE) {
+        switch (operator->type) {
+        case INC: {
+          struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
+          obj->int_value = res->int_value;
+          res->int_value += 1;
+          return obj;
+        }; break;
+        case DEC: {
+          struct obj_t *obj = gc_alloc(OBJECT_DOUBLE);
+          obj->int_value = res->int_value;
+          res->int_value -= 1;
+          return obj;
+        }; break;
+        default: {
+          struct obj_t *err = gc_alloc(OBJECT_ERROR);
+          error_t_format_err(
+              err->err_value, operator, "postfix operator cannot be found",
+              "increment(++) and decrement(--) operators are the only "
+              "postfix operators permitted");
+          return err;
+        }; break;
+        }
+      } else {
+        struct obj_t *err = gc_alloc(OBJECT_ERROR);
+        error_t_format_err(
+            err->err_value, operator,
+            "operation not permitted on non numerical identifiers",
+            "operation only permitted on integer or floating point "
+            "indetifiers(variables)");
+        return err;
+      }
+    } else {
+      struct obj_t *err = gc_alloc(OBJECT_ERROR);
+      error_t_format_err(
+          err->err_value, operator,
+          "operation not permitted on non-identifier expressions", NULL);
+      return err;
+    }
+  }
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_identifier_expr(struct environment *env,
@@ -725,7 +845,7 @@ struct obj_t *evaluate_identifier_expr(struct environment *env,
   if (!value) {
     struct obj_t *err = gc_alloc(OBJECT_ERROR);
     if (err) {
-      error_t_format_err(err->err_value, token, "identifier not found", "");
+      error_t_format_err(err->err_value, token, "identifier not found", NULL);
     }
     return err;
   }
@@ -733,11 +853,11 @@ struct obj_t *evaluate_identifier_expr(struct environment *env,
 }
 
 bool is_truthy(struct obj_t *object) {
-  if (object == (struct obj_t *)&OBJ_TRUE) {
+  if (object == gc_alloc(OBJECT_BOOL_TRUE)) {
     return true;
-  } else if (object == (struct obj_t *)&OBJ_FALSE) {
+  } else if (object == gc_alloc(OBJECT_BOOL_FALSE)) {
     return false;
-  } else if (object == (struct obj_t *)&OBJ_SENTINEL) {
+  } else if (object == gc_alloc(OBJECT_SENTINEL)) {
     return false;
   } else {
     return true;
