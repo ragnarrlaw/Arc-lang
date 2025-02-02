@@ -489,6 +489,7 @@ struct obj_t *evaluate_prefix_increment_operator_expr(
     return err;
   }; break;
   }
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_prefix_decrement_operator_expr(struct environment *env,
@@ -534,6 +535,7 @@ struct obj_t *evaluate_prefix_decrement_operator_expr(struct environment *env,
     return err;
   }; break;
   }
+  return gc_alloc(OBJECT_SENTINEL);
 }
 
 struct obj_t *evaluate_infix_expr(struct token *operator, struct obj_t * left,
@@ -754,6 +756,7 @@ struct obj_t *evaluate_infix_char_expr(struct token *operator,
   }
   return gc_alloc(OBJECT_SENTINEL);
 }
+
 struct obj_t *evaluate_infix_string_expr(struct token *operator,
                                          struct obj_t * left,
                                          struct obj_t *right) {
